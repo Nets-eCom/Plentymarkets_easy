@@ -1,0 +1,21 @@
+[
+    {
+        "identifier": "NetsEasyPay::PayNow",
+        "label": "NetsEasyPay",
+        "previewImageURL": "/images/PayNow.svg",
+        "type": "default",
+        "position": 1050,
+        "widgetClass": "NetsEasyPay\\Widgets\\PayNow",
+        "settings": {
+          "MaxValue": {
+            "type": "text",
+            "required": false,
+            "defaultValue": "50",
+            "options": {
+              "name": "Max Value",
+              "tooltip": "Here the user can input Max Value"
+            }
+          }
+        }
+    }
+]

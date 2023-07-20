@@ -1,0 +1,75 @@
+
+
+{% if services.template.getCurrentTemplate() == 'tpl.checkout'  %}
+
+    {% set checkoutKey  = NetsEasyPay.settings.getSetting('checkoutKey') %}
+    {% set Url  = "https://checkout.dibspayment.eu/v1/checkout.js?v=1" %}
+
+    {% if checkoutKey  %}
+    
+    
+         {% if NetsEasyPay.settings.getSetting('UseTestCredentials')  %}
+              {% set Url  = "https://test.checkout.dibspayment.eu/v1/checkout.js?v=1" %}
+         {% endif %}  
+
+            <script src="{{Url}}"></script>
+            <script src="{{ plugin_path("NetsEasyPay") }}/js/dist/main.js"></script>
+
+            {% set MethodId  = NetsEasyPay.MethodId %}
+            {% set Icons  = NetsEasyPay.settings.getSetting('icons') %}
+            {% set MethodName  = NetsEasyPay.MethodName %}
+
+            <script>
+
+                    $(function() {
+
+                        const icons = JSON.parse('{{ Icons | json_encode | raw }}');
+                      
+                        var NPayCompo = Vue.extend(window.NPay);
+
+                        var component = new NPayCompo({
+                            propsData: {
+                                isShopbuilder : false,
+                                MaxValue : 50,
+                                checkoutKey :'{{ checkoutKey }}',
+                                MethodId:'{{ MethodId }}',
+                                Icons: icons,
+                                MethodName:'{{ MethodName }}'
+                            }
+                        }).$mount();
+
+                        var DomContainer = false;
+                        
+                        $('#vue-app .widget-place-order').after(component.$el); //old ceres
+                        
+                        if($('#vue-app .widget-place-order').length > 0 ) 
+                               DomContainer= true;
+
+ 
+                        var BasketOverviewRightSideIdentifiers = [
+                            '#vue-app .checkout-rightside .sticky-element' // new ceres
+                        ];
+
+                        BasketOverviewRightSideIdentifiers.forEach(selector => {
+                            
+                            if($(selector).length > 0 ){
+                                $(selector).append(component.$el);
+                                if(DomContainer == false) DomContainer = true;
+                            }
+                
+                        });
+
+                        if( DomContainer == false ){
+                            $("li[data-id='" + '{{ MethodId }}' +"']").hide();
+                        }
+                        
+
+                        
+                    });  
+                        
+            </script>
+
+
+        {% endif %}  
+
+{% endif %}

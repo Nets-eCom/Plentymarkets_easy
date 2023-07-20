@@ -1,0 +1,23 @@
+
+{% set checkoutKey  = NetsEasyPay.settings.getSetting('checkoutKey') %}
+{% set MethodId  = NetsEasyPay.MethodId %}
+{% set Icons  = NetsEasyPay.settings.getSetting('icons') %}
+{% set MethodName  = NetsEasyPay.MethodName %}
+
+<div class="custom-widget-wrapper">
+  {% if isShopBuilder %}
+    <p>This will only be displayed in the ShopBuilder, but not when the page is loaded in the frontend/shop.</p>
+  {% else %}
+
+  <ww-widget-paynow :is-shopbuilder="{{ isShopBuilder | json_encode }}"
+                    max-value="{{ MaxValue }}"
+                    checkout-key="{{ checkoutKey }}"
+                    MethodId:'{{ MethodId }}',
+                    Icons: "{{ Icons | json_encode | raw }}",
+                    MethodName:'{{ MethodName }}'
+                    
+                    >
+  </ww-widget-paynow>
+
+  {% endif %}
+</div>

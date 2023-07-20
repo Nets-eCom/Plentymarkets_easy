@@ -1,0 +1,24 @@
+{
+    "marketplaceName":  {"de":"Nexi | Nets Checkout","en":"Nexi | Nets Checkout"},
+    "license"           : "Copyright by Nexi | Nets",
+    "price"             : 0.00,
+    "shortDescription"  : {
+        "de": "Der ultimative plentymarkets Checkout und Payment Plugin mit dem persönlichen und lokalen Support. Bieten Sie Ihren Kunden Ihre favorisierten Zahlarten.  ",
+        "en": "The ultimate plentymarkets checkout and payment plugin with personal and local support. Offer your customers their favorite payment methods."
+      },
+    "categories": ["4083"],
+    "keywords"          : [
+        "Checkout",
+        "Checkout Plugin",
+        "Online Payment",
+        "Payment Plugin",
+        "Online Zahlung",
+        "Online Zahungsarten",
+        "Zahlungsoptionen",
+        "Zahlungsdienstleister",
+        "Nexi Checkout",
+        "Nexi Plugin",
+        "plentymarkets Payment",
+        "Nets Easy"
+      ]
+    }

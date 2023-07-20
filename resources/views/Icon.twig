@@ -1,0 +1,16 @@
+{% set lang  = netseasypay.sessionStorage.getLang() %}
+{% set icon  = "/images/icon.png" %}
+
+{% if (netseasypay.settings.getSetting('logo_type_external') != true) %}
+	{% if (lang != 'de') %}
+		{% set icon  = "/images/icon_en.png" %}
+	{% endif %}
+	<img src="{{ plugin_path("netseasypay") }}{{ icon }}">
+{% else %}
+	{% set icon  = netseasypay.settings.getSetting('logo_url') %}
+	<img src="{{ icon }}">
+{% endif %}
+
+
+
+

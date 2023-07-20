@@ -1,0 +1,31 @@
+{
+  "name": "js",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "dev": "mix",
+    "watch": "mix watch",
+    "watch-poll": "mix watch -- --watch-options-poll=1000",
+    "hot": "mix watch --hot",
+    "production": "mix --production"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "browser-sync": "^2.27.7",
+    "browser-sync-webpack-plugin": "^2.3.0",
+    "laravel-mix": "^6.0.6",
+    "lodash": "^4.17.19",
+    "postcss": "^8.1.14",
+    "resolve-url-loader": "^5.0.0",
+    "sass": "^1.43.4",
+    "sass-loader": "^12.1.0",
+    "vue": "^2.5.17",
+    "vue-loader": "^15.9.6",
+    "vue-template-compiler": "^2.7.10"
+  },
+  "dependencies": {
+    "axios": "^0.21",
+    "vuex": "^3.1.2"
+  }
+}

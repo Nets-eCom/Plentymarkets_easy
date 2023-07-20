@@ -1,0 +1,18 @@
+{
+  "sections":
+  [
+    {
+      "name": "MultilingualismConfig.paymentMethod",
+      "prefix": "paymentMethod"
+    },
+    {
+      "name": "MultilingualismConfig.reinit",
+      "prefix": "reinit"
+    }
+  ],
+  "ignoredTranslationFiles":
+  [
+    "MultilingualismConfig.properties",
+    "NetsEasyPayAssistant.properties"
+  ]
+}

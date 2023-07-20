@@ -1,0 +1,66 @@
+{
+  "version"           : "1.0.1",
+  "name"              : "NetsEasyPay",
+  "marketplaceName"   : {"de":"Nexi | Nets Checkout","en":"Nexi | Nets Checkout"},
+  "author"            : "Nexi | Nets",
+  "license"           : "Copyright by Nexi | Nets",
+  "price"             : 0.00,
+  "description"       : "Das ultimative plentymarket Checkout und Payment Plugin mit dem persönlichen und lokalen Support. Speziell für plentymarkets entwickelt: Die Checkout- und Payment-Lösung mit der Sie ohne Anstrengung mehr verkaufen. Bieten Sie Ihren Kunden Ihre favorisierten Zahlarten, vermeiden Sie Kaufabbrüche, steigern Sie Ihre Conversion und damit Ihren Umsatz. Der optimale Payment-Mix: Ob Kreditkarte, PayPal, Apple Pay, Sofortüberweisung, Lastschrift, AMEX, Kauf auf Rechnung oder Ratenzahlung, dieser plentymarkets Checkout hat alles für Sie und Ihre Kunden an Bord! Im Ausland verkaufen: Verwenden Sie lokale Währungen und/oder in EUR/USD/GBP. Mit diesem plentymarkets Checkout verkaufen Sie über Grenzen hinweg!",
+  "shortDescription"  : {
+    "de": "Der ultimative plentymarkets Checkout und Payment Plugin mit dem persönlichen und lokalen Support. Bieten Sie Ihren Kunden Ihre favorisierten Zahlarten.  ",
+    "en": "The ultimate plentymarkets checkout and payment plugin with personal and local support. Offer your customers their favorite payment methods."
+  },
+  "authorIcon"        : "icon_author_xs.png",
+  "pluginIcon"        : "icon_plugin_xs.png",
+  "keywords"          : [
+    "Checkout",
+    "Checkout Plugin",
+    "Online Payment",
+    "Payment Plugin",
+    "Online Zahlung",
+    "Online Zahungsarten",
+    "Zahlungsoptionen",
+    "Zahlungsdienstleister",
+    "Nexi Checkout",
+    "Nexi Plugin",
+    "plentymarkets Payment",
+    "Nets Easy"
+  ],
+  "type"              : "payment",
+  "categories"        : ["4083"],
+  "namespace"         : "NetsEasyPay",
+  "isClosedSource": true,
+  "platform": {
+    "php": ">=7.3 <8.1"
+  },
+  "require": {
+    "IO": ">=5.0.0",
+    "Ceres": ">=5.0.0"
+  },
+  "serviceProvider"   : "NetsEasyPay\\Providers\\NetsEasyPayServiceProvider",
+  "javaScriptFiles"   : [],
+  "containers"        : [],
+  "dataProviders"     :
+  [
+      {
+          "key"           :"NetsEasyPay\\Providers\\Icon\\IconProvider",
+          "name"          :"NetsEasyPay icon",
+          "description"   :"Display the icon for this payment method",
+          "defaultLayoutContainer": "Ceres::Homepage.PaymentMethods"
+      },
+      {
+          "key"           :"NetsEasyPay\\Providers\\Checkout\\PlaceorderProvider",
+          "name"          :"NetsEasyPay placeorder Button",
+          "description"   :"Display Placeorder Button this payment method",
+          "defaultLayoutContainer": "Ceres::Checkout.BeforePlaceOrder"
+      }
+  ],
+   
+  "dependencies" : {
+    "guzzlehttp/guzzle": "^7.5" 
+  },
+  "runOnBuild"        : [
+      "NetsEasyPay\\Migrations\\CreateSettings_1_0_0",
+      "NetsEasyPay\\Migrations\\CreateShippingCountrySettings_1_0"
+  ]
+}

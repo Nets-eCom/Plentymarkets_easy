@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 350 120" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
+    <g transform="matrix(10.1074,0,0,8.8258,-316.025,-57.4269)">
+        <rect x="31.267" y="6.507" width="34.628" height="13.596" style="fill:rgb(85,188,55);"/>
+    </g>
+    <g transform="matrix(1,0,0,1,8.40984,0.030703)">
+        <rect x="23.506" y="31.385" width="50.518" height="57.169" style="fill:none;stroke:white;stroke-width:3px;"/>
+    </g>
+    <g transform="matrix(1,0,0,1,0.253891,0.688223)">
+        <g transform="matrix(0.287575,0,0,1.29686,30.529,10.6045)">
+            <rect x="30.287" y="41.954" width="35.782" height="5.356" style="fill:rgb(172,222,157);"/>
+        </g>
+        <g transform="matrix(0.645957,0,0,1.29686,32.343,10.6045)">
+            <rect x="30.287" y="41.954" width="35.782" height="5.356" style="fill:rgb(172,222,157);"/>
+        </g>
+        <g transform="matrix(-0.287575,-4.04366e-17,1.38323e-16,-1.29686,83.7301,117.233)">
+            <rect x="30.287" y="41.954" width="35.782" height="5.356" style="fill:rgb(172,222,157);"/>
+        </g>
+        <g transform="matrix(-0.645957,-9.08294e-17,1.38323e-16,-1.29686,81.916,117.233)">
+            <rect x="30.287" y="41.954" width="35.782" height="5.356" style="fill:rgb(172,222,157);"/>
+        </g>
+        <g transform="matrix(1,0,0,1.29686,8.95196,19.818)">
+            <rect x="30.287" y="41.954" width="35.782" height="5.356" style="fill:rgb(172,222,157);"/>
+        </g>
+        <g transform="matrix(-1,-1.22465e-16,1.5882e-16,-1.29686,105.307,108.019)">
+            <rect x="30.287" y="41.954" width="35.782" height="5.356" style="fill:white;"/>
+        </g>
+        <g transform="matrix(-1,-1.22465e-16,1.5882e-16,-1.29686,105.307,98.8056)">
+            <rect x="30.287" y="41.954" width="35.782" height="5.356" style="fill:rgb(172,222,157);"/>
+        </g>
+    </g>
+    <g transform="matrix(1,0,0,1,-3.71725,1.61522)">
+        <text x="99.196px" y="68.455px" style="font-family:'Arial-Black', 'Arial Black', sans-serif;font-weight:900;font-size:28px;fill:white;">PayNow</text>
+    </g>
+</svg>
