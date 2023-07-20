@@ -1,7 +1,17 @@
 # Plentymarkets with Nets Easy
 
+|Module | Nets Easy Payment Module for plentymarkets
+|------|----------
+|Author | `Nets eCom / Web Wikinger`
+|plentyshop LTS Version | `v5.0.0+`
+|iO Version | `v5.0.0+`
+|plugin Version | `1.0.1`
+|Documentation Guide | https://developer.nexigroup.com/nets-easy/en-EU/docs/nets-easy-for-plentymarkets/
+|Github | https://github.com/Nets-eCom/Plentymarkets_easy
+|License | `MIT License`
+
 ## Techsite Link
-- https://developer.nexigroup.com/nets-easy/en-EU/docs/nets-easy-for-plentymarkets
+- https://developer.nexigroup.com/nets-easy/en-EU/docs/nets-easy-for-plentymarkets/
 
 ## Nexi | Nets Checkout - Integration Guide
 ### Configuration Guide - Assistant
