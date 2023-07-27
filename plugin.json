@@ -1,5 +1,5 @@
 {
-  "version"           : "1.0.1",
+  "version"           : "1.0.2",
   "name"              : "NetsEasyPay",
   "marketplaceName"   : {"de":"Nexi | Nets Checkout","en":"Nexi | Nets Checkout"},
   "author"            : "Nexi | Nets",
@@ -29,7 +29,7 @@
   "type"              : "payment",
   "categories"        : ["4083"],
   "namespace"         : "NetsEasyPay",
-  "isClosedSource": true,
+  "isClosedSource": false,
   "platform": {
     "php": ">=7.3 <8.1"
   },

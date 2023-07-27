@@ -21,10 +21,13 @@
 - Checkout Styler
 - Ein Vertrag. Ein Ansprechpartner
 
-**Schnelles Einrichten.** Einfaches Onboarding mit unserem lokalen Support, der jederzeit zur Seite steht.  
+**Schnelles Einrichten.** Einfaches Onboarding mit unserem lokalen Support, der jederzeit zur Seite steht.
+
+Für die Nutzung des Checkouts benötigen Sie einen Account und die Zugangsdaten von Nexi I Nets. [Registrieren Sie sich jetzt, um den Checkout zu nutzen](https://ecom.nets.eu/de/plentymarkets-checkout/?utm_source=plentymarketplace&utm_medium=partner-page&utm_campaign=plentymarkets#form)
 
 **Nets ist Teil der Nexi Gruppe** und mit weltweit 6,1 Billionen Transaktionen jährlich Europas größter PayTech Anbieter. Unsere Payment- und Checkout-Lösungen sind bei mehr als 170.000 Händlern im Einsatz! Wir bieten Ihnen das ultimative Checkout Plug-in für alle Ihre E-Commerce-Transaktionen, so dass Sie sich besser auf Ihr Geschäft und Ihre Kunden konzentrieren können. Mit unserer Lösung können Sie Ihre Konversionsrate optimieren, die Zahl der Kaufabbrüche reduzieren und die Kundenbindung erhöhen. **Erleben Sie die Vorteile unserer Checkout-Lösung und heben Sie Ihren plentymarket Webshop auf das nächste Level.**
 
+[Registrieren Sie sich jetzt, um den Checkout zu nutzen](https://ecom.nets.eu/de/plentymarkets-checkout/?utm_source=plentymarketplace&utm_medium=partner-page&utm_campaign=plentymarkets#form)
 ## Nexi | Nets Checkout - Integrationsleitfaden
 ### Konfigurationsanleitung - Assistent
 1. Nach der Installation des Plug-ins steht dir der Nets Easy Plugin Assistent zur Verfügung, welcher durchlaufen werden muss. Du findest diesen unter **”Einrichtung » Assistenten » Plugins » {Plugin-Set} » Nets Easy”**

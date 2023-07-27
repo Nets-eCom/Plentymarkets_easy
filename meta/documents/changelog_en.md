@@ -1,5 +1,8 @@
 # Release Notes for Nexi | Nets Checkout
 
+**v1.0.2 (2023-07-27)**
+- Adjustments to the userguide, support section and plugin base data
+
 **v1.0.1 (2023-07-13)**
 - Adjustments based on plugin review feedback
 

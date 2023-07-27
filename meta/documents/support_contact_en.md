@@ -1,10 +1,8 @@
-## Support Helpcenter
-https://developer.nexigroup.com/nets-easy/en-EU/support/
-https://developer.nexigroup.com/nets-easy/en-EU/docs/nets-easy-for-plentymarkets/
+## Our support and helpcenter:
+[How can we help you? | Nets Easy | Nexi group developer portal](https://developer.nexigroup.com/nets-easy/en-EU/support/)
+[Techsite | Nets Easy for Plentymarkets](https://developer.nexigroup.com/nets-easy/en-EU/docs/nets-easy-for-plentymarkets/)
+## Or just contact us by mail:
+ecomexperten@nexigroup.com
 
-## Or contact us at:
-ecom-de@nets.eu
-
-## Phone 
-+43 800 100 320
-Mo-Fr:  09:00 - 17:00
+## Or by telephone in the time of Mo.-Fr. from 9-17 o'clock:
++49 (0)69 7922 2670

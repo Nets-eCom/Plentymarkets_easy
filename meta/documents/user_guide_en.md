@@ -23,7 +23,11 @@
 
 **Fast setup.** Easy onboarding with our local support, who is always available to help.
 
+You need an account to get the credentials to test the checkout. [Please register to use the Nexi | Nets payment checkout](https://ecom.nets.eu/de/plentymarkets-checkout/?utm_source=plentymarketplace&utm_medium=partner-page&utm_campaign=plentymarkets#form)
+
 **Nets is part of the Nexi Group** and with 6.1 trillion transactions annually, Europe's largest PayTech provider. Our payment and checkout solutions are used by more than 170,000 merchants worldwide! We offer you the ultimate checkout plug-in for all your e-commerce transactions, so you can better focus on your business and customers. With our solution, you can optimize your conversion rate, reduce the number of purchase abandonments, and increase customer loyalty. **Experience the benefits of our checkout solution and take your plentymarket webshop to the next level.**
+
+[Please register to use the Nexi | Nets payment checkout](https://ecom.nets.eu/de/plentymarkets-checkout/?utm_source=plentymarketplace&utm_medium=partner-page&utm_campaign=plentymarkets#form)
 
 ## Nexi | Nets Checkout - Integration Guide
 ### Configuration Guide - Assistant
