@@ -72,7 +72,29 @@ class NetsEasyPayAssistantSettingsHandler implements WizardSettingsHandler
                 'external_info_page'  => $data['external_info_page'],
                 'internal_info_page' => $data['internal_info_page'],
                 'info_page_type' => $data['info_page_type'],
-                'allowNetsEasyForGuest' => $data['allowNetsEasyForGuest']
+                'allowNexiForGuest' => $data['allowNexiForGuest'],
+                'allowedNexiMethods' => $data['allowedNexiMethods'],
+                //'allowedWebHooks' => $data['allowedWebHooks'],
+                'allowedOrderStatusChangeChargeEvent' => $data['allowedOrderStatusChangeChargeEvent'],
+                'ChargeCompletedStatus' => $data['ChargeCompletedStatus'],
+                'ChargeFaildStatus' => $data['ChargeFaildStatus'],
+                
+                'allowedOrderStatusChangeCancelEvent' => $data['allowedOrderStatusChangeCancelEvent'],
+                'CancelCompletedStatus' => $data['CancelCompletedStatus'],
+                'CancelFaildStatus' => $data['CancelFaildStatus'],
+                
+                'allowedOrderStatusChangeRefundEvent' => $data['allowedOrderStatusChangeRefundEvent'],
+                'RefundCompletedStatus' => $data['RefundCompletedStatus'],
+                'RefundFaildStatus' => $data['RefundFaildStatus'],
+
+                'allowCreditNoteCreationOnRefund' => $data['allowCreditNoteCreationOnRefund'],
+                'creditNoteCreationStatus' => $data['creditNoteCreationStatus'],
+                'allowedOrderStatusChangeOnAPIfailure' => $data['allowedOrderStatusChangeOnAPIfailure'],
+                'APIcallFaildStatus' =>   $data['APIcallFaildStatus'],
+                'AppleVerification' =>   $data['AppleVerification'],
+                'AppleVerificationText' =>   $data['AppleVerificationText'],
+                   
+                
             ]
         ];
         /** @var SettingsService $settingsService */
@@ -240,11 +262,11 @@ class NetsEasyPayAssistantSettingsHandler implements WizardSettingsHandler
      */
     private function activateLegacyPaymentMethod()
     {
-        /** @var NetsEasyPayHelper $NetsEasyPayHelper */
-        $NetsEasyPayHelper = pluginApp(NetsEasyPayHelper::class);
-        /** @var PaymentMethodRepositoryContract $paymentMethodRepository */
         $paymentMethodRepository = pluginApp(PaymentMethodRepositoryContract::class);
-
-        $paymentMethodRepository->activatePaymentMethod(NetsEasyPayHelper::getNetsEasyPayMopId());
+        
+        $mopIds = NetsEasyPayHelper::getAllNetsEasyPayMopIds();
+        foreach ($mopIds as  $mopId) {
+            $paymentMethodRepository->activatePaymentMethod($mopId);
+        }
     }
 }

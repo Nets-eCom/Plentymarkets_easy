@@ -3,7 +3,7 @@
 namespace NetsEasyPay\Models;
 
 use Plenty\Modules\Plugin\DataBase\Contracts\Model;
-
+use NetsEasyPay\Configuration\PluginConfiguration;
 /**
  * Class ShippingCountrySettings
  *
@@ -25,6 +25,6 @@ class ShippingCountrySettings extends Model
      */
     public function getTableName():string
     {
-        return 'NetsEasyPay::shippingCountries';
+        return PluginConfiguration::PLUGIN_NAME.'::ShippingCountrySettings';
     }
 }

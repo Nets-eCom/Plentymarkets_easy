@@ -25,14 +25,16 @@ use NetsEasyPay\Configuration\PluginConfiguration;
  */
 class BaseMethod extends PaymentMethodBaseService
 {
+    protected $app;
+
     /** @var BasketRepositoryContract */
-    private $basketRepo;
+    protected $basketRepo;
 
     /** @var  SettingsService */
-    private $settings;
+    protected $settings;
 
     /** @var  Checkout */
-    private $checkout;
+    protected $checkout;
 
     /** @var AccountService */
     protected $accountService;
@@ -42,6 +44,7 @@ class BaseMethod extends PaymentMethodBaseService
 
     /** @var Translator */
     protected $translator;
+
 
     /**
      * NetsEasyPayPaymentMethod constructor.
@@ -56,8 +59,10 @@ class BaseMethod extends PaymentMethodBaseService
                                   SettingsService             $service,
                                   Checkout                    $checkout,
                                   AccountService              $accountService,
-                                  NetsEasyPayHelper                 $NetsEasyPayHelper,
-                                  Translator                  $translator)
+                                  NetsEasyPayHelper           $NetsEasyPayHelper,
+                                  Translator                  $translator,
+                                  Application                 $app
+                                  )
     {
         $this->basketRepo     = $basketRepo;
         $this->settings       = $service;
@@ -65,6 +70,7 @@ class BaseMethod extends PaymentMethodBaseService
         $this->accountService = $accountService;
         $this->NetsEasyPayHelper    = $NetsEasyPayHelper;
         $this->translator     = $translator;
+        $this->app     = $app;
     }
 
     /**
@@ -75,34 +81,7 @@ class BaseMethod extends PaymentMethodBaseService
      */
     public function isActive(): bool
     {
-        /** @var Basket $basket */
-        $basket = $this->basketRepo->load();
-
-        if (!$this->isGuest($basket->customerId)) {
-
-            /** @var ContactRepositoryContract $contactRepository */
-            $contactRepository = pluginApp(ContactRepositoryContract::class);
-            $contact = $contactRepository->findContactById($basket->customerId);
-
-            if (!$this->hasActiveShippingCountry()) {
-                if (!$this->isExplicitlyAllowedForThisCustomer($contact)) {
-                    return false;
-                }
-            }
-
-        } else {
-
-            if (!$this->hasActiveShippingCountry()) {
-                return false;
-            }
-
-            if(!$this->settings->getSetting('allowNetsEasyForGuest') && $this->isGuest($basket->customerId)) {
-                return false;
-            }
-
-        }
-
-        return true;
+        return false;
     }
 
     /**
@@ -160,11 +139,10 @@ class BaseMethod extends PaymentMethodBaseService
         {
             $lang = $this->getLanguage();
 
-            $app = pluginApp(Application::class);
             if ($lang == 'de') {
-                $icon = $app->getUrlPath(strtolower(PluginConfiguration::PLUGIN_NAME)).'/images/icon_de.jpg';
+                $icon = $this->app->getUrlPath(strtolower(PluginConfiguration::PLUGIN_NAME)).'/images/icon_de.jpg';
             } else {
-                $icon = $app->getUrlPath(strtolower(PluginConfiguration::PLUGIN_NAME)).'/images/icon_en.jpg';
+                $icon = $this->app->getUrlPath(strtolower(PluginConfiguration::PLUGIN_NAME)).'/images/icon_en.jpg';
             }
 
             return $icon;
@@ -219,74 +197,8 @@ class BaseMethod extends PaymentMethodBaseService
      */
     public function isSwitchableTo(int $orderId = null):bool
     {
-        if(!is_null($orderId) && $orderId > 0) {
 
-            try {
-
-                /** @var OrderRepositoryContract $orderRepo */
-                $orderRepo = pluginApp(OrderRepositoryContract::class);
-                $filters = $orderRepo->getFilters();
-                $filters['addOrderItems'] = false;
-                $orderRepo->setFilters($filters);
-
-                $order = $orderRepo->findOrderById($orderId, ['amounts', 'contactReceiver']);
-
-                $customerId = $order->contactReceiver !== null ? $order->contactReceiver->id : 0;
-
-                if (!$this->isGuest($customerId)) {
-
-                    /** @var ContactRepositoryContract $contactRepository */
-                    $contactRepository = pluginApp(ContactRepositoryContract::class);
-                    $contact = $contactRepository->findContactById($customerId);
-
-                    if (!$this->hasActiveShippingCountry()) {
-                        if (!$this->isExplicitlyAllowedForThisCustomer($contact)) {
-                            return false;
-                        }
-                    }
-
-                }
-
-            } catch(\Exception $e) {}
-
-        } else {
-
-            try {
-
-                $basketRepositoryContract = pluginApp(BasketRepositoryContract::class);
-
-                /** @var Basket $basket */
-                $basket = $basketRepositoryContract->load();
-
-                if (!$this->isGuest($basket->customerId)) {
-
-                    /** @var ContactRepositoryContract $contactRepository */
-                    $contactRepository = pluginApp(ContactRepositoryContract::class);
-                    $contact = $contactRepository->findContactById($basket->customerId);
-
-                    if (!$this->hasActiveShippingCountry()) {
-                        if (!$this->isExplicitlyAllowedForThisCustomer($contact)) {
-                            return false;
-                        }
-                    }
-
-                } else {
-
-                    if (!$this->hasActiveShippingCountry()) {
-                        return false;
-                    }
-
-                    if( !$this->settings->getSetting('allowNetsEasyForGuest') && $this->isGuest($basket->customerId)) {
-                        return false;
-                    }
-
-                }
-
-            } catch(\Exception $e) {}
-
-        }
-
-        return true;
+        return false;
     }
 
     /**
@@ -349,16 +261,15 @@ class BaseMethod extends PaymentMethodBaseService
      */
     public function getBackendIcon(): string
     {
-        $app = pluginApp(Application::class);
-        $icon = $app->getUrlPath(strtolower(PluginConfiguration::PLUGIN_NAME)).'/images/icons/svg/easy.svg';
-        return $icon;
+
+        return $this->app->getUrlPath(strtolower(PluginConfiguration::PLUGIN_NAME)).'/images/icons/svg/easy.svg';
     }
 
     /**
      * @param int $customerId
      * @return bool
      */
-    private function isGuest($customerId)
+    public function isGuest($customerId)
     {
         return !$this->accountService->getIsAccountLoggedIn() || $customerId <= 0;
     }
@@ -367,19 +278,20 @@ class BaseMethod extends PaymentMethodBaseService
      * @param Contact $contact
      * @return bool
      */
-    private function isExplicitlyAllowedForThisCustomer(Contact $contact = null)
+    public function isExplicitlyAllowedForThisCustomer(Contact $contact = null,$methodOfPaymentId)
     {
         if (is_null($contact)) {
             return false;
         }
 
-        $allowed = $contact->allowedMethodsOfPayment->first(function ($method) {
+        $allowed = $contact->allowedMethodsOfPayment->first(function ($method,$methodOfPaymentId) {
             if ($method instanceof ContactAllowedMethodOfPayment) {
-                if ($method->methodOfPaymentId == NetsEasyPayHelper::getNetsEasyPayMopId() && $method->allowed) {
+                if ($method->methodOfPaymentId == $methodOfPaymentId && $method->allowed) {
                     return true;
                 }
             }
         });
+
 
         return $allowed ? true : false;
 
@@ -389,7 +301,7 @@ class BaseMethod extends PaymentMethodBaseService
      * @return bool
      * @throws \Plenty\Exceptions\ValidationException
      */
-    private function hasActiveShippingCountry()
+    public function hasActiveShippingCountry()
     {
         if (empty($this->settings->getShippingCountries()) || !in_array($this->checkout->getShippingCountryId(), $this->settings->getShippingCountries())) {
             return false;
@@ -397,6 +309,43 @@ class BaseMethod extends PaymentMethodBaseService
             return true;
         }
 
+    }
+
+    public function isMethodActive($MethodKey){
+        
+        $basket = $this->basketRepo->load();
+        $allowedMethods = $this->settings->getSetting('allowedNexiMethods');
+
+        if(!is_array($allowedMethods) || !in_array($MethodKey, $allowedMethods))
+            return false;
+        
+        
+        if (!$this->isGuest($basket->customerId)) {
+
+            $contactRepository = pluginApp(ContactRepositoryContract::class);
+            $contact = $contactRepository->findContactById($basket->customerId);
+
+            if (!$this->hasActiveShippingCountry()) {
+                if (!$this->isExplicitlyAllowedForThisCustomer($contact,$basket->methodOfPaymentId)) {
+                    return false;
+                }
+            }
+
+        } else {
+
+            if (!$this->hasActiveShippingCountry()) {
+                return false;
+            }
+
+            $allowedMethodsForGuest = $this->settings->getSetting('allowNexiForGuest');
+
+            if(!is_array($allowedMethodsForGuest) || (!in_array($MethodKey, $allowedMethodsForGuest) && $this->isGuest($basket->customerId))) {
+                return false;
+            }
+
+        }
+
+        return true;
     }
 
 

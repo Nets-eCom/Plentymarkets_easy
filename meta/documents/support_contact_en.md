@@ -1,6 +1,6 @@
 ## Our support and helpcenter:
-[How can we help you? | Nets Easy | Nexi group developer portal](https://developer.nexigroup.com/nets-easy/en-EU/support/)
-[Techsite | Nets Easy for Plentymarkets](https://developer.nexigroup.com/nets-easy/en-EU/docs/nets-easy-for-plentymarkets/)
+[How can we help you? | Nexi group developer portal](https://developer.nexigroup.com/nexi-checkout/en-EU/support/)
+[Techsite | Nexi Checkout for Plentymarkets](https://developer.nexigroup.com/nets-easy/en-EU/docs/nets-easy-for-plentymarkets/)
 ## Or just contact us by mail:
 ecomexperten@nexigroup.com
 

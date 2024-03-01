@@ -7,11 +7,13 @@ use Plenty\Modules\Account\Address\Models\Address as PlentyAddress;
 use Plenty\Modules\Authorization\Services\AuthHelper;
 use Plenty\Modules\Order\Address\Contracts\OrderAddressRepositoryContract;
 use Plenty\Modules\Order\Contracts\OrderRepositoryContract;
+use Plenty\Modules\Order\Models\OrderType;
 use Plenty\Modules\Order\Models\Order as PlentyOrder;
 use Plenty\Modules\Order\Models\OrderReference;
 use Plenty\Modules\Order\Property\Models\OrderProperty as PlentyOrderProperty;
 use Plenty\Modules\Order\Shipping\Package\Contracts\OrderShippingPackageRepositoryContract;
 use Plenty\Modules\Order\Shipping\Package\Models\OrderShippingPackage;
+use Plenty\Modules\Order\CreditNote\Contracts\CreditNoteRepositoryContract;
 
 class OrderHelper
 {
@@ -66,7 +68,46 @@ class OrderHelper
 
     return $order->findOrderByExternalOrderId($id);
   }
+  public static function getOrderbyIdWithReferences($orderId)
+  {
 
+    $orderRepository = pluginApp(OrderRepositoryContract::class);
+
+    $page = 1;
+
+    $orderRepository->setFilters([
+      'orderIds' => $orderId,
+    ]);
+
+    return  $orderRepository->searchOrders($page,100,['originOrderReferences']);
+
+  }
+  public static function getallcreditnotofOrder($orderId)
+  {
+
+    $orderRepository = pluginApp(OrderRepositoryContract::class);
+
+    $page = 1;
+
+    $orderRepository->setFilters([
+      'parentOrderId' => $orderId,
+      'orderType' => OrderType::TYPE_CREDIT_NOTE,
+    ]);
+
+    return  $orderRepository->searchOrders($page)->getResult();
+
+  }
+
+  public static function createCreditNoteforOrder($orderId,$payload,$status = null)
+  {
+     
+     $CreditNote =  pluginApp(CreditNoteRepositoryContract::class)->createFromParent($orderId,$payload);
+    
+     self::setOrderStatusId($CreditNote->id,$status);
+
+     return $CreditNote;
+  }
+  
   /**
    * @param $statusFrom
    * @param int $statusTo

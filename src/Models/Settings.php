@@ -3,7 +3,8 @@
 namespace NetsEasyPay\Models;
 
 use Plenty\Modules\Plugin\DataBase\Contracts\Model;
-
+use Plenty\Modules\Plugin\DataBase\Contracts\DataBase;
+use NetsEasyPay\Configuration\PluginConfiguration;
 /**
  * Class Settings
  *
@@ -31,6 +32,37 @@ class Settings extends Model
      */
     public function getTableName():string
     {
-        return 'NetsEasyPay::settings';
+        return PluginConfiguration::PLUGIN_NAME.'::Settings';
     }
+
+    public static function all(): array
+    {
+        return pluginApp(DataBase::class)
+                  ->query(Settings::class)
+                  ->get();
+      
+    }
+    public static function find($fields=[], $values=[], $operator=['='])
+    {
+
+        if( !count($fields) || !count($values) || count($values) != count($fields)){
+            return false;
+        }
+        
+        $query = pluginApp(DataBase::class)->query(Settings::class);
+
+        foreach ($fields as $key => $field)
+        {
+            $query->where($field, array_key_exists($key,$operator)? $operator[$key]:'=', $values[$key]);
+        }
+
+        return $query->get();
+                                        
+    }
+
+
+   
+
+
+      
 }

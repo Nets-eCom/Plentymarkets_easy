@@ -17,8 +17,9 @@
 import ApiService from "Ceres/app/services/ApiService";
 import { navigateTo } from "Ceres/app/services/UrlService";
 
+
 export default {
-props: ['isShopbuilder','MaxValue','checkoutKey','MethodId','Icons','MethodName'],
+props: ['checkoutKey','MethodIds','ApplePayId'],
 
 data() {
   return {
@@ -81,11 +82,10 @@ computed:{
     
     return vueApp.$store.state.basket.data.shippingProfileId; 
    },
-   DefaultPlaceOrderButton() {
-
-         return this.methodOfPaymentId == this.MethodId ? 'hide' : 'show'
+   DefaultPlaceOrderButton() { 
+         return this.MethodIds.includes(this.methodOfPaymentId) ? 'hide' : 'show';
    }
-   
+
 },
 watch: {
   DefaultPlaceOrderButton:function(value){
@@ -101,11 +101,12 @@ watch: {
     
         this.ShowBasketDetails()
         this.HideNChekout()
-
-   
     }
+
+    if(!this.is_ApplePay_Visible())
+        $(`li[data-id='${this.ApplePayId}']`).remove(); 
+
  
-    this.alterNetsDetailsContainer()
   },
   CheckoutDeliveryAddress:function(value){
 
@@ -116,7 +117,8 @@ watch: {
 
       }
 
-      this.alterNetsDetailsContainer()
+      if(!this.is_ApplePay_Visible())
+        $(`li[data-id='${this.ApplePayId}']`).remove(); 
   },
   basketAmount : function(value){
 
@@ -134,11 +136,21 @@ watch: {
           this.HideNChekout()
         
       }
-  }
-      
+
+      if(!this.is_ApplePay_Visible())
+        $(`li[data-id='${this.ApplePayId}']`).remove(); 
+  },
+  methodOfPaymentId : function(value){
+    if(this.isNCheckoutVisiable){
+          
+          this.ShowBasketDetails()
+          this.HideNChekout()
+        
+      }
+  }  
 },
 mounted: function () {
-
+  
   const urlParams = new URLSearchParams(window.location.search);
   this.SuccessPayId = urlParams.get('paymentId')
 
@@ -175,14 +187,14 @@ mounted: function () {
      }
 
     
-     this.alterNetsDetailsContainer()
+     //this.alterNetsDetailsContainer()
 
      if(this.SuccessPayId != null){
           this.IntializeNetsPayment(this.SuccessPayId)
      }
     
-
-     
+     if(!this.is_ApplePay_Visible())
+          $(`li[data-id='${this.ApplePayId}']`).remove(); 
      
   })
 },
@@ -324,7 +336,7 @@ methods: {
   IntializeNetsPayment(paymentId){
     
     const netsLanguage = this.getFormattedLanguage()
-    console.log(netsLanguage);
+
     const checkoutOptions = {
                                   checkoutKey: this.checkoutKey, 
                                   paymentId: paymentId,
@@ -343,6 +355,7 @@ methods: {
       })
   },
   PlaceOrder(){
+    
              const url = "/rest/io/order/additional_information";
 
              const params = {
@@ -448,7 +461,82 @@ methods: {
   },
   hideSpin(){
          $('#NPayBtnArrow').removeClass('fa-circle-o-notch fa-spin').addClass('fa-arrow-right');
+  },
+  checkOs(){
+
+    // Get the user agent string
+    var userAgent = navigator.userAgent;
+    var os = {type : null,version: null};
+    // Check if the user is on macOS
+    if (/Macintosh/.test(userAgent)) {
+      // Extract the macOS version
+      var macVersionMatch = /Mac OS X (\d+[_.]\d+([_.]\d+)*)/.exec(userAgent);
+      
+      os.type = 'macOS'
+      os.version = macVersionMatch ? macVersionMatch[1].replace(/_/g, '.') : null;
+
+    } else if (/Windows/.test(userAgent)) {
+      // Check if the user is on Windows
+      var windowsVersionMatch = /Windows NT (\d+\.\d+)/.exec(userAgent);
+
+      os.type = 'windows'
+      os.version = windowsVersionMatch ? windowsVersionMatch[1]: null;
+      
+    } 
+
+    return os;
+    
+  },
+  CheckBrowser(){
+
+            // Get the user agent string
+        var userAgent = navigator.userAgent;
+
+        // Determine the browser type and version
+        var browserType, browserVersion;
+
+        if (/Edge\/\d+/.test(userAgent)) {
+          browserType = 'Microsoft Edge';
+          browserVersion = /Edge\/(\d+)/.exec(userAgent)[1];
+        } else if (/Chrome\/\d+/.test(userAgent)) {
+          browserType = 'Google Chrome';
+          browserVersion = /Chrome\/(\d+)/.exec(userAgent)[1];
+        } else if (/Firefox\/\d+/.test(userAgent)) {
+          browserType = 'Mozilla Firefox';
+          browserVersion = /Firefox\/(\d+)/.exec(userAgent)[1];
+        } else if (/Safari/.test(userAgent)) {
+          browserType = 'Safari';
+          browserVersion = /Version\/(\d+)/.exec(userAgent)[1];
+        } else if (/MSIE \d+/.test(userAgent) || /Trident\/\d+/.test(userAgent)) {
+          browserType = 'Internet Explorer';
+          browserVersion = /(?:MSIE (\d+)|Trident\/(\d+))/.exec(userAgent)[1];
+        } else {
+          browserType = 'Unknown';
+          browserVersion = 'N/A';
+        }
+
+            return {
+              type : browserType,
+              version : browserVersion
+            };
+
+  },
+  is_ApplePay_Visible(){
+     
+    let Os = this.checkOs()
+    let Browser =this.CheckBrowser()
+
+    if(Os.type == 'windows' ) return false;
+
+    if(Os.type == 'macOS' && Os.version < 16 ) return false
+
+    if(Os.type == 'macOS' )
+        if(Browser.type != 'Safari') return false;
+    
+    return true
+
   }
+
 },
 
 }

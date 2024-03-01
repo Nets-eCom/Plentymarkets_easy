@@ -12,36 +12,60 @@ class NetsEasyPayRouteServiceProvider extends RouteServiceProvider
     /**
      * @param Router $router
      */
-    public function map(Router $router, ApiRouter $apiRouter)
+    public function map(ApiRouter $apiRouter,Router $router)
     {
-        $apiRouter->version(['v1'], ['namespace' => 'NetsEasyPay\Controllers', 'middleware' => 'oauth'], function ($route) {
-            // route for test and debugging 
-            $route->get('netseasy/createpayment', 'NetsEasyPayController@CreatePayment');
-            $route->get('netseasy/updatepayment/{PaymentId}', 'NetsEasyPayController@UpdatePayment');
-            $route->get('netseasy/getpaymentbyid/{PaymentId}', 'NetsEasyPayController@getpaymentbyid');
-
-
-            $route->get('netseasy/chargepayment/{PaymentId}', 'NetsEasyPayController@ChargePayment');
-            $route->get('netseasy/cancelpayment/{PaymentId}', 'NetsEasyPayController@CancelPayment');
-            $route->get('netseasy/refundpayment/{PaymentId}', 'NetsEasyPayController@RefundPayment');
-
-            $route->get('netseasy/chargeorderpayment/{orderId}', 'NetsEasyPayController@ChargeOrderPayment');
-            $route->get('netseasy/cancelorderpayment/{orderId}', 'NetsEasyPayController@CancelOrderPayment');
-            $route->get('netseasy/refundorderpayment/{orderId}', 'NetsEasyPayController@RefundOrderPayment');
-
-            $route->get('netseasy/UpdateNetsEasyPaymentRef/{orderId}/{PaymentId}', 'NetsEasyPayController@UpdateNetsEasyPaymentRef');
-
-            $route->get('netseasy/ChangePlentyPaymentStatus/{PaymentId}/{status}', 'NetsEasyPayController@ChangePlentyPaymentStatus');
-
-            $route->get('netseasy/loadSettings', 'SettingsController@loadSettings');
-            $route->get('netseasy/getsession', 'NetsEasyPayController@Get_Session');
-            $route->get('netseasy/resetsession', 'NetsEasyPayController@Reset_Session');
-            $route->get('netseasy/updateorderproperty/{orderId}/{propId}/{propValue}', 'NetsEasyPayController@UpdateOrderproperty');
-            $route->get('netseasy/createplentypayment/{orderId}', 'NetsEasyPayController@CreatePlentyPayment');
-
-            $route->get('netseasy/debug_test', 'NetsEasyPayController@debug_test');
-            $route->get('netseasy/test_Notification', 'NetsEasyPayController@test_Notification');
-            $route->get('netseasy/getWebstoreConfig', 'NetsEasyPayController@getWebstoreConfig');
+        $apiRouter->version(['v1'], ['namespace' => 'NetsEasyPay\Controllers','middleware' => 'oauth'], function ($route) {
+            
+            // Route for test and debugging 
+            $route->get('nexi/settings', 'SettingsController@getSettings');
+            $route->post('nexi/settings/reset_table', 'SettingsController@runMigration');
+            
+            
+            //Test and Debug Nexi Routes
+            $route->post('nexi/createpayment', 'NexiController@CreatePayment');
+            $route->post('nexi/getpaymentbyid/{PaymentId}', 'NexiController@getpaymentbyid');
+            $route->post('nexi/updatepayment/{PaymentId}', 'NexiController@UpdatePayment');
+            $route->post('nexi/cancelpayment/{PaymentId}', 'NexiController@CancelPayment');
+            $route->post('nexi/chargepayment/{PaymentId}', 'NexiController@ChargePayment');
+            $route->post('nexi/refundpayment/{PaymentId}', 'NexiController@RefundPayment');
+            $route->post('nexi/methods/create_mop_ids', 'NexiController@createMopIfNotExists');
+            $route->post('nexi/property/create_init_props/{name}', 'NexiController@CreateInitialProperty');
+            $route->post('nexi/property/create_order_props', 'NexiController@CreateInitialOrderProperties');
+            $route->get('nexi/property/all', 'NexiController@Getallprops');
+            
+            // plenty Order routes
+            $route->post('nexi/chargeorderpayment/{orderId}', 'NexiController@ChargeOrderPayment');
+            $route->post('nexi/cancelorderpayment/{orderId}', 'NexiController@CancelOrderPayment');
+            $route->post('nexi/refundorderpayment/{orderId}', 'NexiController@RefundOrderPayment');
+            $route->post('nexi/updatenexipaymentref/{orderId}/{PaymentId}', 'NexiController@updatenexipaymentRef');
+            $route->post('nexi/changeplentypaymentstatus/{PaymentId}/{status}', 'NexiController@ChangePlentyPaymentStatus');
+            $route->post('nexi/updateorderrefrenceprops/{PropertyId}/{orderId}/{PaymentId}', 'NexiController@UpdateNexiPaymentIdprops');
+            $route->get('nexi/orders/{orderId}', 'NexiController@getOrderbyIdWithReferences');
+            $route->get('nexi/get_payment_by_hash/{orderId}/{hash}', 'NexiController@get_payment_by_hash');
+            
+            // Credit Note route
+            $route->get('nexi/orders_creditnote/{orderId}', 'NexiController@getallcreditnotofOrder');
+            $route->get('nexi/create_creditnote/{orderId}/{paymentID}/{ChargeId}', 'NexiController@createCreditNoteforOrder');
+            $route->get('nexi/get_payment_creditnote/{orderId}/{refundId}', 'NexiController@get_payment_from_credit_note');
+            $route->get('nexi/refund_creditnote/{creditenoteId}', 'NexiController@run_refund_order');
+            
+            //Session routes
+            $route->get('nexi/get_session', 'NexiController@Get_Session');
+            $route->get('nexi/reset_session', 'NexiController@Reset_Session');
+            
+    
+           //WebHooks Routes
+            $route->get('nexi/webhooks/get_all_tokens', 'WebHooksController@get_All_Tokens');
+            $route->post('nexi/webhooks', 'WebHooksController@subscribe');
+            $route->post('nexi/webhooks/generate_new_token', 'WebHooksController@generate_New_token');
+            $route->post('nexi/webhooks/run_migration', 'WebHooksController@runMigration');
         });
-    }
+
+        $apiRouter->version(['v1'], ['namespace' => 'NetsEasyPay\Controllers'], function ($route) {
+            $route->post('nexi/webhooks', 'WebHooksController@subscribe');
+        });
+
+        // apple verification link
+        $router->get('.well-known/apple-developer-merchantid-domain-association', 'NetsEasyPay\Controllers\NexiController@verify_domain');
+        }
 }

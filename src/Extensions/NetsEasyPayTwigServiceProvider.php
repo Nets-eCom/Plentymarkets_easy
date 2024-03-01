@@ -7,6 +7,7 @@ use Plenty\Plugin\Templates\Extensions\Twig_Extension;
 use NetsEasyPay\Services\SettingsService;
 use NetsEasyPay\Helper\SessionHelper;
 use NetsEasyPay\Helper\NetsEasyPayHelper;
+use NetsEasyPay\Configuration\PluginConfiguration;
 
 class NetsEasyPayTwigServiceProvider extends Twig_Extension
 {
@@ -51,8 +52,8 @@ class NetsEasyPayTwigServiceProvider extends Twig_Extension
             "NetsEasyPay" => [
                 "settings"          => pluginApp( SettingsService::class ),
                 "sessionStorage"    => pluginApp( SessionHelper::class ),
-                "MethodId"          => NetsEasyPayHelper::getNetsEasyPayMopId(),
-                "MethodName"        => NetsEasyPayHelper::getMethodName()
+                "MethodIds"         => NetsEasyPayHelper::getAllNetsEasyPayMopIds(),
+                "ApplePayId"        => NetsEasyPayHelper::getNetsEasyPayMopId(PluginConfiguration::PAYMENT_KEY_APPLEPAY),
             ]
         ];
     }

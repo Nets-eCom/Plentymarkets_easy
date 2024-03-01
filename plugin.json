@@ -1,7 +1,7 @@
 {
-  "version"           : "1.0.2",
+  "version"           : "1.0.4",
   "name"              : "NetsEasyPay",
-  "marketplaceName"   : {"de":"Nexi | Nets Checkout","en":"Nexi | Nets Checkout"},
+  "marketplaceName"   : {"de":"Nexi Checkout","en":"Nexi Checkout"},
   "author"            : "Nexi | Nets",
   "license"           : "Copyright by Nexi | Nets",
   "price"             : 0.00,
@@ -44,15 +44,9 @@
   [
       {
           "key"           :"NetsEasyPay\\Providers\\Icon\\IconProvider",
-          "name"          :"NetsEasyPay icon",
+          "name"          :"NexiCheckout icon",
           "description"   :"Display the icon for this payment method",
           "defaultLayoutContainer": "Ceres::Homepage.PaymentMethods"
-      },
-      {
-          "key"           :"NetsEasyPay\\Providers\\Checkout\\PlaceorderProvider",
-          "name"          :"NetsEasyPay placeorder Button",
-          "description"   :"Display Placeorder Button this payment method",
-          "defaultLayoutContainer": "Ceres::Checkout.BeforePlaceOrder"
       }
   ],
    
@@ -60,7 +54,9 @@
     "guzzlehttp/guzzle": "^7.5" 
   },
   "runOnBuild"        : [
-      "NetsEasyPay\\Migrations\\CreateSettings_1_0_0",
-      "NetsEasyPay\\Migrations\\CreateShippingCountrySettings_1_0"
+      "NetsEasyPay\\Migrations\\CreateSettings_1_0_2",
+      "NetsEasyPay\\Migrations\\CreateShippingCountrySettings_1_0_3",
+      "NetsEasyPay\\Migrations\\Create_AccessToken_1_0_3",
+      "NetsEasyPay\\Migrations\\Create_Order_Properties_1_0_1"
   ]
 }

@@ -9,7 +9,9 @@ use NetsEasyPay\Configuration\PluginConfiguration;
 class PaypalMethod extends BaseMethod
 {
 
-  
+    
+    const METHOD_KEY = PluginConfiguration::PAYMENT_KEY_PAYPAL;
+    const METHOD_NAME = PluginConfiguration::PLUGIN_NAME."::PaymentMethods.".self::METHOD_KEY;
 
     /**
      * Check whether the method is active.
@@ -18,7 +20,7 @@ class PaypalMethod extends BaseMethod
      */
     public function isActive(): bool
     {
-        return false;
+        return $this->isMethodActive(self::METHOD_KEY);
     }
 
     /**
@@ -27,7 +29,7 @@ class PaypalMethod extends BaseMethod
      */
     public function getBackendName(string $lang = 'de'): string
     {
-        return $this->translator->trans(PluginConfiguration::PLUGIN_NAME."::PaymentMethods.".PluginConfiguration::PAYMENT_KEY_PAYPAL);
+        return $this->translator->trans(self::METHOD_NAME);
     }
 
      /**
@@ -38,12 +40,19 @@ class PaypalMethod extends BaseMethod
      */
     public function getName(string $lang = 'de'): string
     {
-        return $this->translator->trans(PluginConfiguration::PLUGIN_NAME."::PaymentMethods.".PluginConfiguration::PAYMENT_KEY_PAYPAL);
+        return $this->translator->trans(self::METHOD_NAME);
         
     }
-
     public function getDescription(string $lang = 'de'): string
     {
-        return $this->translator->trans(PluginConfiguration::PLUGIN_NAME."::PaymentMethods.".PluginConfiguration::PAYMENT_KEY_PAYPAL."Description");
+        return $this->translator->trans(self::METHOD_NAME."Description");
+    }
+
+    public function getIcon(string $lang = 'de'): string
+    {
+        $icon = strtolower(str_replace(PluginConfiguration::PAYMENT_KEY_EASY, '', self::METHOD_KEY));
+    
+        return $this->app->getUrlPath(strtolower(PluginConfiguration::PLUGIN_NAME)).'/images/icons/svg/'.$icon.'.svg';
+         
     }
 }

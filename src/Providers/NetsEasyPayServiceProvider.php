@@ -18,12 +18,9 @@ use Plenty\Plugin\Events\Dispatcher;
 use Plenty\Modules\Basket\Events\Basket\AfterBasketChanged;
 use Plenty\Modules\Basket\Events\Basket\AfterBasketCreate;
 use Plenty\Modules\Basket\Events\BasketItem\AfterBasketItemAdd;
-use Plenty\Modules\Basket\Events\BasketItem\AfterBasketItemRemove;
-use Plenty\Modules\Basket\Events\BasketItem\AfterBasketItemUpdate;
-use Plenty\Modules\Basket\Events\BasketItem\BeforeBasketItemAdd;
 use Plenty\Modules\Frontend\Events\FrontendUpdateInvoiceAddress;
 use Plenty\Modules\Frontend\Events\FrontendUpdateDeliveryAddress;
-
+use Plenty\Modules\Frontend\Events\FrontendPaymentMethodChanged;
 use Plenty\Plugin\Translation\Translator;
 
 use IO\Helper\ResourceContainer;
@@ -36,7 +33,7 @@ use NetsEasyPay\Procedures\RefundEventProcedure;
 
 use NetsEasyPay\Assistants\NetsEasyPayAssistant;
 use NetsEasyPay\Extensions\NetsEasyPayTwigServiceProvider;
-use NetsEasyPay\Helper\Plenty\Order\OrderPropertyHelper;
+use NetsEasyPay\Helper\Plenty\Utils;
 use NetsEasyPay\Helper\NetsEasyPayHelper;
 use NetsEasyPay\Helper\Logger;
 use NetsEasyPay\Helper\SessionHelper;
@@ -93,11 +90,13 @@ class NetsEasyPayServiceProvider extends ServiceProvider
         // Register the netseasy payment method in the payment method container
         $paymentMethods = PluginConfiguration::$paymentMethods;
         foreach ($paymentMethods as $key => $method) {
-            $payContainer->register(
-                PluginConfiguration::PLUGIN_KEY . '::' . $method['Key'],
-                $method['Class'],
-                $this->paymentMethodEvents()
-            );
+
+                $payContainer->register(
+                    PluginConfiguration::PLUGIN_KEY . '::' . $method['Key'],
+                    $method['Class'],
+                    $this->paymentMethodEvents()
+                );
+            
         }
 
         // Listen for AfterBasketChanged
@@ -107,8 +106,6 @@ class NetsEasyPayServiceProvider extends ServiceProvider
                 NetsEasyPayHelper::UpdateNetsEasyPayment();
             }
         );
-
-
         $eventDispatcher->listen(
             FrontendUpdateInvoiceAddress::class,
             function ($event) {
@@ -121,7 +118,6 @@ class NetsEasyPayServiceProvider extends ServiceProvider
             },
             0
         );
-
         $eventDispatcher->listen(
             FrontendUpdateDeliveryAddress::class,
             function ($event) {
@@ -134,64 +130,57 @@ class NetsEasyPayServiceProvider extends ServiceProvider
             },
             0
         );
-
-
-        // Listen for Basket Item Add
         $eventDispatcher->listen(
-            AfterBasketItemAdd::class,
-            function (AfterBasketItemAdd $event) use ($paymentHelper) {
-            }
+            FrontendPaymentMethodChanged::class,
+            function ($event) {
+                
+            },
+            0
         );
 
-        // Listen for Basket Item remove
-        $eventDispatcher->listen(
-            AfterBasketItemRemove::class,
-            function (AfterBasketItemRemove $event) use ($paymentHelper) {
-            }
-        );
+        
 
-        // Listen for Basket Item UPDATE
-        $eventDispatcher->listen(
-            AfterBasketItemUpdate::class,
-            function (AfterBasketItemUpdate $event) use ($paymentHelper) {
-            }
-        );
-
-        // Listen for Before Basket Item Add
-        $eventDispatcher->listen(
-            BeforeBasketItemAdd::class,
-            function (BeforeBasketItemAdd $event) {
-            }
-        );
 
 
         // Listen for the event that gets the payment method content
         $eventDispatcher->listen(
             GetPaymentMethodContent::class,
             function (GetPaymentMethodContent $event) {
-                if ($event->getMop() == NetsEasyPayHelper::getNetsEasyPayMopId()) {
+               
+                 $sessionHelper = pluginApp(SessionHelper::class);
+                 $translator = pluginApp(Translator::class);
+                 // get the name of payment-method 
+                 $NexiSelectedMethod = NetsEasyPayHelper::getMethodByMopId($event->getMop());
 
-                    // check if paymentId Doesn't Exit
-                    $sessionHelper = pluginApp(SessionHelper::class);
-                    $PaymentId =  $sessionHelper->getValue('EasyPaymentId') ?? NetsEasyPayService::CreatePaymentId();
-
-                    //check if paymentId expired -> to do
-
-                    Logger::debug(__FUNCTION__, "NetsEasyPay::Debug.CreatedPaymentId", [
-                        'PaymentId' => $PaymentId,
-                    ]);
-
-                    if ($PaymentId) {
-
-                        //set paymentId value into a session variable
-                        $sessionHelper->setValue('EasyPaymentId', $PaymentId);
-                        $event->setValue($PaymentId);
+                if ($NexiSelectedMethod) {
+                     
+                    $SessionPaymentId = $sessionHelper->getValue('EasyPaymentId');
+                   
+                    if ($SessionPaymentId && 
+                        $NexiSelectedMethod == $sessionHelper->getValue('NexiSelectedMethod') ) { // a paymentid already exist
+                        
+                        $event->setValue($SessionPaymentId);
                         $event->setType(GetPaymentMethodContent::RETURN_TYPE_CONTINUE);
 
+
                         return true;
+  
                     }
 
-                    $translator = pluginApp(Translator::class);
+                    $EasyPaymentId = NetsEasyPayService::CreatePaymentId();
+                        
+                    if($EasyPaymentId){
+
+                            $sessionHelper->setValue('EasyPaymentId', $EasyPaymentId);
+                            $sessionHelper->setValue('NexiSelectedMethod', $NexiSelectedMethod);
+                            $event->setValue($EasyPaymentId);
+                            $event->setType(GetPaymentMethodContent::RETURN_TYPE_CONTINUE);
+                          
+  
+                            return true;
+                    }
+
+                    
                     $event->setValue($translator->trans('NetsEasyPay::ErrorMessages.CanNotCreatePaymentId'));
                     $event->setType(GetPaymentMethodContent::RETURN_TYPE_ERROR);
                 }
@@ -201,9 +190,11 @@ class NetsEasyPayServiceProvider extends ServiceProvider
         // Listen for the event that executes the payment
         $eventDispatcher->listen(
             ExecutePayment::class,
-            function (ExecutePayment $event) use ($paymentHelper, $basketRepo, $sessionHelper) {
+            function (ExecutePayment $event) use ($sessionHelper) {
+                
+                $SelectedMethod = NetsEasyPayHelper::getMethodByMopId($event->getMop());
 
-                if ($event->getMop() == NetsEasyPayHelper::getNetsEasyPayMopId()) {
+                if ($SelectedMethod) {
                     $basketRepo = pluginApp(BasketRepositoryContract::class);
                     $orderRepository = pluginApp(OrderRepositoryContract::class);
 
@@ -212,80 +203,39 @@ class NetsEasyPayServiceProvider extends ServiceProvider
 
                     $order = $orderRepository->findById($event->getOrderId());
                     $basket = $basketRepo->load();
-
-                    // get NetsEasy Payment Details  -> to do : handle fallback
-                    $NetsEasyPayment = NetsEasyPayService::getNetsEasyPaymentByID($EasyPaymentId);
-
-
-
-                    //check the payment status from netseasy 
-                    $PaymentMethod = $NetsEasyPayment['payment']['paymentDetails']['paymentMethod'] ?? null;
-                    // check booked amount --> to do
-
-                    $MopId = $PaymentMethod ?  NetsEasyPayHelper::getNetsEasyPayMopId(PluginConfiguration::PAYMENT_KEY_EASY . strtoupper($PaymentMethod)) : null;
-                    $MopId = ($MopId  && $MopId != 'no_paymentmethod_found') ? $MopId : NetsEasyPayHelper::getNetsEasyPayMopId();
-
-                    // Update the order's payment method 
-                    OrderPropertyHelper::updateOrCreateValue($order->id, 3, (string) $MopId);
+                    $MopId = $event->getMop();
+                    $OrderPropertyType = Utils::GetOrderPropertyType(PluginConfiguration::PAYMENTID_ORDER_PROPERTY);
+                    //update order property with payment id
+                    NetsEasyPayHelper::UpdateNexiPaymentIdprops($OrderPropertyType->id,$order->id, $EasyPaymentId);
+                    
+                    //Update NetsEasy by adding the orderID as referrence
+                    NetsEasyPayService::UpdateNetsEasyPaymentRef($order->id, $EasyPaymentId);
 
 
-                    // create payment object for plenty 
-                    $PaymentInfo = [
-                        'currency' => $basket->currency,
-                        'amount' => $basket->basketAmount,
-                        'id' => $EasyPaymentId,
-                        'mopId' => $MopId,
-                        'refundId' => null,
-                        'paymentId' => $EasyPaymentId,
-                        'type' => 'credit',
-                        'chargeId' => $NetsEasyPayment['payment']['charges'][0]['chargeId'] ?? null
-                    ];
+                    // delete EasyPaymentId from the session
+                    $sessionHelper->setValue('EasyPaymentId', null);
+                    $sessionHelper->setValue('NexiSelectedMethod', null);
+              
+                    Logger::debug(__FUNCTION__, "NetsEasyPay::Debug.ExecutePaymentPayload", [
+              
+                                          'EasyPaymentId' => $EasyPaymentId,
+                                          'order' => $order,
+                                          'basket' => $basket,
+                                          'MopId' => $MopId,
+              
+              
+                    ]);
+              
+                     $event->setType(GetPaymentMethodContent::RETURN_TYPE_CONTINUE);
 
-                    //Create plenty Payment and asigne it to order-> to do check if payment created
-                    $PlentyPayment = NetsEasyPayHelper::CreatePlentyPayment($PaymentInfo, $order->id);
+                     return $event->setValue('The payment has been executed successfully!');
+                                 
 
-                    if ($PlentyPayment instanceof Payment) {
-
-                        //Update NetsEasy by adding the orderID as referrence
-                        $response = NetsEasyPayService::UpdateNetsEasyPaymentRef($order->id, $EasyPaymentId);
-
-                        // Charge NetsEasy Payment 
-                        // NetsEasyPayService::ChargePayment($EasyPaymentId);
-
-                        // delete EasyPaymentId from the session
-                        $sessionHelper->setValue('EasyPaymentId', null);
-
-                        Logger::debug(__FUNCTION__, "NetsEasyPay::Debug.ExecutePaymentPayload", [
-
-                            'EasyPaymentId' => $EasyPaymentId,
-                            'order' => $order,
-                            'basket' => $basket,
-                            'NetsEasyPayment' => $NetsEasyPayment,
-                            'PlentyPayment' => $PlentyPayment,
-                            'PaymentMethod' => $PaymentMethod,
-                            'MopId' => $MopId,
-
-
-                        ]);
-
-                        $event->setType(GetPaymentMethodContent::RETURN_TYPE_CONTINUE);
-                        return $event->setValue('The payment has been executed successfully!');
-                    } else {
-                        Logger::debug(__FUNCTION__, "NetsEasyPay::Debug.CanNotCreatePlentyPayment", [
-                            'EasyPaymentId' => $EasyPaymentId,
-                            'NetsEasyPayment' => $NetsEasyPayment,
-                            'PlentyPayment' => $PlentyPayment
-                        ]);
-
-                        $event->setType(GetPaymentMethodContent::RETURN_TYPE_ERROR);
-                        $translator = pluginApp(Translator::class);
-
-                        return $event->setValue($translator->trans('NetsEasyPay::ErrorMessages.PaymentCannotBeExecuted'));
-                    }
                 }
 
 
                 $sessionHelper->setValue('EasyPaymentId', null);
+                $sessionHelper->setValue('NexiSelectedMethod', null);
             }
         );
 
@@ -295,8 +245,8 @@ class NetsEasyPayServiceProvider extends ServiceProvider
             'NetsEasyPaymentMethod',
             ProcedureEntry::PROCEDURE_GROUP_ORDER,
             [
-                'de' => 'NetsEasy Belastung der Zahlung',
-                'en' => 'NetsEasy Charge payment'
+                'de' => 'Nexi Checkout Belastung der Zahlung',
+                'en' => 'Nexi Checkout Charge payment'
             ],
             ChargeEventProcedure::class . '@run'
         );
@@ -305,8 +255,8 @@ class NetsEasyPayServiceProvider extends ServiceProvider
             'NetsEasyPaymentMethod',
             ProcedureEntry::PROCEDURE_GROUP_ORDER,
             [
-                'de' => 'NetsEasy Rückerstattung der Zahlung',
-                'en' => 'NetsEasy Refund payment'
+                'de' => 'Nexi Checkout Rückerstattung der Zahlung',
+                'en' => 'Nexi Checkout Refund payment'
             ],
             RefundEventProcedure::class . '@run'
         );
@@ -315,8 +265,8 @@ class NetsEasyPayServiceProvider extends ServiceProvider
             'NetsEasyPaymentMethod',
             ProcedureEntry::PROCEDURE_GROUP_ORDER,
             [
-                'de' => 'NetsEasy Stornierung der Zahlung',
-                'en' => 'NetsEasy Cancel payment'
+                'de' => 'Nexi Checkout Stornierung der Zahlung',
+                'en' => 'Nexi Checkout Cancel payment'
             ],
             CancelEventProcedure::class . '@run'
         );

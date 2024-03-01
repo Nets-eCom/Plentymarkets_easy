@@ -5,6 +5,7 @@ namespace NetsEasyPay\Helper;
 
 use Plenty\Modules\Helper\Services\WebstoreHelper;
 use Plenty\Modules\Order\Contracts\OrderRepositoryContract;
+use NetsEasyPay\Helper\Plenty\Order\OrderHelper;
 use Plenty\Modules\Payment\Contracts\PaymentOrderRelationRepositoryContract;
 use Plenty\Modules\Payment\Contracts\PaymentRepositoryContract;
 use Plenty\Modules\Payment\Method\Contracts\PaymentMethodRepositoryContract;
@@ -16,6 +17,9 @@ use NetsEasyPay\Services\NetsEasyPayServiceHttp as NetsEasyPayService ;
 use NetsEasyPay\Configuration\PluginConfiguration;
 use Plenty\Plugin\Translation\Translator;
 use NetsEasyPay\Helper\Plenty\Notification;
+use NetsEasyPay\Helper\Plenty\Utils;
+use NetsEasyPay\Services\SettingsService;
+use Plenty\Plugin\Http\Response;
 /**
  * Class NetsEasyPayHelper
  *
@@ -37,6 +41,7 @@ class NetsEasyPayHelper
      */
     private $paymentMethodRepository;
 
+    
 
 
     /**
@@ -52,26 +57,50 @@ class NetsEasyPayHelper
     /**
      * Create the ID of the payment method if it doesn't exist yet
      */
-    public function createMopIfNotExists()
+    public static function createMopIfNotExists()
     {
         // Check whether the ID of the plentyNetsEasy payment method has been created
 
         $paymentMethods = PluginConfiguration::$paymentMethods;
+        $paymentMethodRepository = pluginApp(PaymentMethodRepositoryContract::class);
+        $new_created_methods = [];
 
         foreach ($paymentMethods as $key => $method) {
-            if(self::getNetsEasyPayMopId($method['Key']) == 'no_paymentmethod_found'){
-                
-                $paymentMethodData = array( 
-                    'pluginKey' => PluginConfiguration::PLUGIN_KEY,
-                    'paymentKey' => $method['Key'],
-                    'name' => $method['Name']);
-    
-                 $this->paymentMethodRepository->createPaymentMethod($paymentMethodData);
-            }
+
+                $NexiMethod =  self::getNetsEasyPayMopId($method['Key']);
+
+                if( $NexiMethod == 'no_paymentmethod_found'){
+                         
+                    $paymentMethodRepository->createPaymentMethod([
+                            'pluginKey' => PluginConfiguration::PLUGIN_KEY,
+                            'paymentKey' => $method['Key'],
+                            'name' => $method['Name']
+                         ]);
+                    
+                    $new_created_methods[] = $method['Key'];
+
+                }
+
+
         }
 
-    }
+        return $new_created_methods;
 
+    }
+    public static function getAppleVerificationText(){
+
+        $response = pluginApp(Response::class);
+        $Settings =  SettingsService::getAllSetting();
+       
+       //return $Settings['AppleVerification'] ? $Settings['AppleVerificationText'] : null;
+        return $Settings['AppleVerification'] ? $response->make(
+            $Settings['AppleVerificationText'],
+            $response::HTTP_OK,
+            ['Content-Type' => 'text/plain']
+        ) : null;
+
+    }
+    
     /**
      * Update Netseasy payment on basket change
      */
@@ -96,10 +125,20 @@ class NetsEasyPayHelper
        
         return $response;
     }
+    public static function CreateInitialProperty($names){
+        
+        return Utils::CreateInitialProperty($names);
+        
+    }
+    public static function UpdateNexiPaymentIdprops($PropertyId,$OrderId,$PaymentId){
 
+        return Utils::setOrderProperty($PropertyId,$OrderId,$PaymentId);
+
+    }
     public static function CancelNetsEasyPayment($OrderId){
 
-        $NetsPayment = self::getNetsEasypaymentFromOrder($OrderId);
+        $Settings =  SettingsService::getAllSetting();
+        $NetsPayment = self::getNetsEasypaymentIdFromOrder($OrderId);
         
         if(!$NetsPayment){
             
@@ -122,63 +161,51 @@ class NetsEasyPayHelper
         }
 
         Logger::debug(__FUNCTION__, "NetsEasyPay::Debug.CancelPaymentPayload", [
-                'currency' => $NetsPayment->currency,
-                'total'    => $NetsPayment->amount,
-                'paymentId'=> $NetsPayment->hash,
-                'status'   => $NetsPayment->status
+                'NetsPayment' => $NetsPayment,
         ]);
 
-        $NetsEasyPayment = NetsEasyPayService::getNetsEasyPaymentByID($NetsPayment->hash);
-
+        $NetsEasyPayment = NetsEasyPayService::getNetsEasyPaymentByID($NetsPayment);
+        
         if(!$NetsEasyPayment){
+           
             Logger::error(__FUNCTION__, "NetsEasyPay::Debug.ApiError", ['NetsPayment' => $NetsPayment],'orderId',$OrderId);
+           
+            $allowedOrderStatusChangeOnAPIfailure = $Settings['allowedOrderStatusChangeOnAPIfailure'];
+            //change order status.
+            if($allowedOrderStatusChangeOnAPIfailure)
+                OrderHelper::setOrderStatusId($OrderId,$Settings['APIcallFaildStatus']);
+            
             return false;
         }
-            
+        //check if payment has charges
+
         if(!empty($NetsEasyPayment["payment"]["charges"]) ){
-             // call refund method : with full refund
-             $response = NetsEasyPayService::RefundPayment($NetsPayment->hash,[],0);
-
-             if($response['refundId']){
-                 //Change Status of the payment in plenty to refunded
-                 self::ChangePlentyPaymentStatus($NetsPayment->id,Payment::STATUS_REFUNDED);
-                            
-            }else{
-                Logger::error(__FUNCTION__, "NetsEasyPay::Debug.ApiError",$response);
-            }
-
-             return true;
-        }
+            // call refund method : with full refund
+            NetsEasyPayService::RefundPayment($NetsPayment,[],0); 
+            
+            return true;
+       }
 
         //Cancel the given payment.
-         $response = NetsEasyPayService::CancelPayment($NetsPayment->hash);
+        $response = NetsEasyPayService::CancelPayment($NetsPayment);
 
-        //change plentypayment status to Canceled
-        if(!$response['error']){
-            self::ChangePlentyPaymentStatus($NetsPayment->id,Payment::STATUS_CANCELED);
-        }else{
-            // add log for error ;
-            $payload = [
-                'type' => 'warning',
-                'contents' => [
-                       'subject' => "NE - Cancel Event: OrderId " . $OrderId,
-                       'body'=> 'NetsEasyPay::Debug.ApiError'
-                ]
-            ];
+        if ($response['error']) {
+          
+            Logger::debug(__FUNCTION__, "NetsEasyPay::Debug.ApiError",  $response);
+            
+            $allowedOrderStatusChangeOnAPIfailure = $Settings['allowedOrderStatusChangeOnAPIfailure'];
+            //change order status.
+            if($allowedOrderStatusChangeOnAPIfailure)
+                OrderHelper::setOrderStatusId($OrderId,$Settings['APIcallFaildStatus']);
+        } 
         
-            Notification::AddNotification($payload);
-
-            Logger::error(__FUNCTION__, "NetsEasyPay::Debug.ApiError",$response);
-        }
-                
-        
-
-
     }
     public static function ChargeNetsEasyPayment($OrderId){
          
-        
-        $NetsPayment = self::getNetsEasypaymentFromOrder($OrderId);
+        $Settings =  SettingsService::getAllSetting();
+        //get paymentId from order :
+
+        $NetsPayment = self::getNetsEasypaymentIdFromOrder($OrderId);
         
         if(!$NetsPayment){
             
@@ -189,7 +216,7 @@ class NetsEasyPayHelper
             $payload = [
                 'type' => 'warning',
                 'contents' => [
-                       'subject' => "NE - Charge Event: OrderId " . $ReturnOrderID,
+                       'subject' => "NE - Charge Event: OrderId " . $OrderId,
                        'body'=> 'NetsEasyPay::ErrorMessages.NoPaymentFound'
                 ]
             ];
@@ -200,53 +227,24 @@ class NetsEasyPayHelper
 
         }
 
+        $response = NetsEasyPayService::ChargePayment($NetsPayment);  
 
-        $response = NetsEasyPayService::ChargePayment($NetsPayment->hash);
+        if ($response['error']) {
           
-        //Change plenty Payment's status to Approved/refused
-
-        if($response && !$response['error'] ){
-               
-                
-                 $chargeId = $response['chargeId'] ?? 'ChargeId';
-
-                 self::UpdatePlentyPaymentStatus($NetsPayment->id,Payment::STATUS_APPROVED,$chargeId);
-                
-                 Logger::debug(__FUNCTION__, "NetsEasyPay::Debug.ChargePaymentResponse",$response);
-      
-        }else{
-             //$response['error'] declined or non valid operation 
-
-             if( $NetsPayment->status != Payment::STATUS_APPROVED){
-                  self::ChangePlentyPaymentStatus($NetsPayment->id,Payment::STATUS_REFUSED);
-             }
-
-             Logger::error(__FUNCTION__, "NetsEasyPay::Debug.ApiError",$response);
-             
-             $payload = [
-                'type' => 'warning',
-                'contents' => [
-                       'subject' => "NE - Charge Event: OrderId " . $OrderId,
-                       'body'=> 'NetsEasyPay::Debug.ApiError'
-                ]
-            ];
-        
-            Notification::AddNotification($payload);
-
+            Logger::debug(__FUNCTION__, "NetsEasyPay::Debug.ApiError",  $response);
             
-                
-        }
-        
-
-        
+            $allowedOrderStatusChangeOnAPIfailure = $Settings['allowedOrderStatusChangeOnAPIfailure'];
+            //change order status.
+            if($allowedOrderStatusChangeOnAPIfailure)
+                OrderHelper::setOrderStatusId($OrderId,$Settings['APIcallFaildStatus']);
+        } 
 
     }
     public static function RefundNetsEasyPayment($ReturnOrderID){
-
-        $paymentContract = pluginApp(PaymentRepositoryContract::class);
-        $orderRepository = pluginApp(OrderRepositoryContract::class);
-
-        $ReturnOrder = $orderRepository->findById($ReturnOrderID);
+        
+        $Settings =  SettingsService::getAllSetting();
+ 
+        $ReturnOrder = pluginApp(OrderRepositoryContract::class)->findById($ReturnOrderID);
         
         $parentOrderId = null;
         
@@ -277,8 +275,8 @@ class NetsEasyPayHelper
         }
             
         //get Netseasy PaymentId from parent Order
-        $NetsPayment = self::getNetsEasypaymentFromOrder($parentOrderId);
-        
+        $NetsPayment = self::getNetsEasypaymentIdFromOrder($parentOrderId);
+
         if(!$NetsPayment){
             
             Logger::error(__FUNCTION__, "NetsEasyPay::ErrorMessages.NoPaymentFound", [
@@ -299,14 +297,14 @@ class NetsEasyPayHelper
     
         }
         
-        $paymentId = $NetsPayment->hash;
+        $paymentId = $NetsPayment;
        
 
         $orderItemData = [];
         $amount = 0;
 
         foreach ($ReturnOrder->orderItems as $key => $item) {
-            $price =  $item->amounts[0]->priceGross * 100;
+            
             $grossTotal =  round($item->quantity * $item->amounts[0]->priceGross,2) * 100;
             $netTotalAmount = round($item->quantity * $item->amounts[0]->priceNet,2)* 100;
             $taxamount = round($grossTotal - $netTotalAmount,2);
@@ -330,7 +328,7 @@ class NetsEasyPayHelper
                 $amount += $grossTotal;
             }
             
-            if($item->typeId == 6){
+            if($item->typeId == 6 && $item->amounts[0]->priceOriginalGross != 0 ){
                 $orderItemData[] = [
                                         "reference"=>"Shipping",
                                         "name"=> "Shipping",
@@ -354,48 +352,41 @@ class NetsEasyPayHelper
             'refundorderItemData' => $orderItemData,
             'refundAmount' => $amount,
             'paymentId' => $paymentId
-         ]);
+        ]);
 
+    
         $response = NetsEasyPayService::RefundPayment($paymentId,$orderItemData,$amount);
 
+        // create payment in the credit note and set with refundId as a hash
+        $refundId = $response['data']['refundId'];
+        $chargeId = $response['chargeId'];
 
-        if($response['refundId']){
-             //Create Payment in Plenty for refund / return  Order
-              $PaymentInfo = [
-                                'currency' => $NetsPayment->currency,
-                                'amount' => $amount/100,
-                                'id' => $response['refundId'],
-                                'mopId' => $NetsPayment->mopId,
-                                'refundId' => $response['refundId'],
-                                'paymentId' => $NetsPayment->hash,
-                                'type' => 'debit'
-                            ];
+        if($refundId){
+   
+                foreach ($ReturnOrder->properties as $key => $property) {
+                    if($property->typeId == 3){
+                      $MopId = $property->value;
+                    }
+                }
 
-              // create payment only if it's not a return order
-             $ReturnPayment = NetsEasyPayHelper::CreatePlentyPayment($PaymentInfo,$ReturnOrderID);
-             
-             if($ReturnPayment instanceof Payment){
-                    //change plentypayment status for return Order  to PPROVED
-                    self::ChangePlentyPaymentStatus($ReturnPayment->id,Payment::STATUS_APPROVED);
-             }else{
-                Logger::error(__FUNCTION__, "NetsEasyPay::ErrorMessages.CanNotCreatePlentyPayment", [
-                    'PaymentInfo' => $PaymentInfo,
-                 ]);
-
-                 $payload = [
-                    'type' => 'warning',
-                    'contents' => [
-                           'subject' => "NE - Refund Event: OrderId " . $ReturnOrderID,
-                           'body'=> 'NetsEasyPay::ErrorMessages.CanNotCreatePlentyPayment'
-                    ]
+                $PaymentInfo = [
+                    'currency' => $ReturnOrder->amounts[0]->currency,
+                    'amount' => $amount/100,
+                    'id' => $refundId,
+                    'status' => Payment::STATUS_AWAITING_APPROVAL,
+                    'mopId' => $MopId,
+                    'reference' => $paymentId,
+                    'chargeId' => $chargeId,
+                    'refundId' => $refundId,
+                    'type' => 'debit',
+                    'unaccountable' => true
                 ];
-            
-                Notification::AddNotification($payload);
-             }
-            
+
+
+                return self::CreatePlentyPayment($PaymentInfo, $ReturnOrder->id);
 
         }else{
-
+            
             $payload = [
                 'type' => 'warning',
                 'contents' => [
@@ -406,10 +397,161 @@ class NetsEasyPayHelper
         
             Notification::AddNotification($payload);
 
-            Logger::error(__FUNCTION__, "NetsEasyPay::Debug.ApiError",$response);
-        }
-        
+            Logger::debug(__FUNCTION__, "NetsEasyPay::Debug.ApiError",  $response);
+            
+            $allowedOrderStatusChangeOnAPIfailure = $Settings['allowedOrderStatusChangeOnAPIfailure'];
+            //change order status.
+            if($allowedOrderStatusChangeOnAPIfailure)
+                OrderHelper::setOrderStatusId($ReturnOrderID,$Settings['APIcallFaildStatus']);
 
+            Logger::error(__FUNCTION__, "NetsEasyPay::Debug.ApiError",$response);
+
+            return null;
+        }
+
+    
+    }
+    public static function CreateCreditNoteforOrder($OrderId,$paymentId=null,$ChargeId = null,$status = null){
+
+
+       $payload = [];
+       $quantities = [];
+      
+       
+       if($paymentId && $ChargeId){
+
+            
+            // get Payment from the api
+            $NetsEasyPayment = NetsEasyPayService::getNetsEasyPaymentByID($paymentId);
+
+            if(!$NetsEasyPayment){
+                Logger::error(__FUNCTION__, "NetsEasyPay::Debug.ApiError", ['NetsPayment' => $paymentId]);
+                return null;
+            }
+
+            // get items for this chargeId
+            $Charges = $NetsEasyPayment["payment"]["charges"];
+            $ChargeItems = null;
+
+            foreach ( $Charges as $key => $Charge) {
+                if($Charge['chargeId'] == $ChargeId){
+                    $ChargeItems = $Charge['orderItems'];
+                    break;
+                }
+            }
+            if(!$ChargeItems){ 
+                Logger::error(__FUNCTION__, "NetsEasyPay::ErrorMessages.NoChargeFound", [
+                    'NetsPaymentId' => $paymentId,
+                    'NetsEasyPayment' => $NetsEasyPayment,
+                    'ChargeId' => $ChargeId   
+                ]);
+
+                return null;
+            }
+
+            $ParentOrder =  OrderHelper::find($OrderId);
+
+            $copyShippingCosts = false;
+            $shippingCostsValue = 0;
+            $setShippingCostsToZero =  true;
+
+            // get orderItemIds from the parent order
+            foreach ($ChargeItems as $i => $ChargeItem) {
+                
+                foreach ($ParentOrder->orderItems as $k => $orderItem) {
+                    if($ChargeItem['reference'] == $orderItem->itemVariationId ){
+                        $quantities[] = [
+                            "orderItemId" => $orderItem->id,
+                            "quantity"=> $ChargeItem['quantity'],
+                            "orderItemName"=> $ChargeItem['name']
+                        ];
+                        break;
+                    }
+                } 
+
+                if($ChargeItem['reference'] == 'Shipping' ){
+                    $copyShippingCosts = true;
+                    $shippingCostsValue = $ChargeItem['grossTotalAmount'] / 100;
+                    $setShippingCostsToZero =  false;
+                }
+                
+            }
+
+            
+            $payload = [
+                "copyShippingCosts" => $copyShippingCosts,
+                "shippingCostsValue" =>$shippingCostsValue,
+                "setShippingCostsToZero" => $setShippingCostsToZero,
+                "includeCouponsIntoOrderItemPrice" => false,
+                "quantities"=> $quantities
+              ];
+            
+              
+       }
+
+       Logger::debug(__FUNCTION__, "NetsEasyPay::Debug.CreditNotePayload", [
+        'NetsPaymentId' => $paymentId,
+        'NetsEasyPayment' => $NetsEasyPayment,
+        'ChargeId' => $ChargeId,
+        'payload'  => $payload,
+        'status' => $status
+      ]);
+      
+       $crediteNote =  OrderHelper::createCreditNoteforOrder($OrderId,$payload,$status);
+
+       return $crediteNote;
+
+
+    }
+    public static function CreateChargePayment($data,$status,$unaccountable=0)
+    {
+  
+      $EasyPaymentId = $data['paymentId'];
+      
+      $chargeId = $data['chargeId'];
+      $amount = $data['amount']['amount'];
+  
+      // get reference
+      $NetsEasyPayment = NetsEasyPayService::getNetsEasyPaymentByID($EasyPaymentId);
+  
+      if(!$NetsEasyPayment){
+        Logger::error(__FUNCTION__, "NetsEasyPay::Debug.ApiError", ['NetsPayment' => $EasyPaymentId]);
+        return null;
+      }
+            
+  
+      $orderId = $NetsEasyPayment["payment"]["orderDetails"]["reference"];
+  
+      $Order = pluginApp(OrderRepositoryContract::class)->findById($orderId);
+       
+  
+      foreach ($Order->properties as $key => $property) {
+        if($property->typeId == 3){
+          $MopId = $property->value;
+        }
+      }
+      // create payment object for plenty 
+      $PaymentInfo = [
+                      'currency' => $Order->amounts[0]->currency,
+                      'amount' => $amount/100,
+                      'id' => $chargeId,
+                      'mopId' => $MopId,
+                      'reference' => $EasyPaymentId,
+                      'chargeId' => $chargeId,
+                      'type' => 'credit',
+                      'status' => $status,
+                      'unaccountable' => $unaccountable
+      ];
+  
+          //Create plenty Payment and asigne it to order-> to do check if payment created
+       $payment = self::CreatePlentyPayment($PaymentInfo, $Order->id);
+       
+       return [
+        'payment' => $payment,
+        'orderId' => $orderId
+       ];
+    
+       
     }
 
     public static function ChangePlentyPaymentStatus($id,$status){
@@ -422,6 +564,26 @@ class NetsEasyPayHelper
         Logger::debug(__FUNCTION__, "NetsEasyPay::Debug.NewPlentyPayment", $payment );
 
         return $paymentContract->updatePayment($payment);
+        
+
+    }
+    public static function AddPlentyPaymentReference($id,$reference){
+        
+
+       
+        $payment = pluginApp(PaymentRepositoryContract::class)->getPaymentById($id);
+        
+        $properties = $payment->properties;
+        
+        foreach ($properties as $key => $property) {
+            if($property->typeId == PaymentProperty::TYPE_BOOKING_TEXT){
+                $property->value .= $reference;
+            }
+        }
+
+        Logger::debug(__FUNCTION__, "NetsEasyPay::Debug.NewPlentyPayment", $payment );
+
+        return pluginApp(PaymentRepositoryContract::class)->updatePayment($payment);
         
 
     }
@@ -451,7 +613,7 @@ class NetsEasyPayHelper
         //get all payments of the order
         $payments = $paymentContract->getPaymentsByOrderId($orderId);
         
-        $NetsPayments = [];
+        $NetsPayments = null;
        
         //search for netseasy payment id linked to the order
         foreach ($payments as $key => $payment) {
@@ -466,18 +628,71 @@ class NetsEasyPayHelper
                 'payments' => $payments
              ]);
 
-        if(!empty($NetsPayments))
-             return $NetsPayments[0];
+      
+         return $NetsPayments;
 
-        return null;
+
+    }
+    public static function getNetsEasypaymentIdFromOrder($orderId){
+
+
+        $Order = pluginApp(OrderRepositoryContract::class)->findById($orderId);
+        $OrderPropertyType = Utils::GetOrderPropertyType(PluginConfiguration::PAYMENTID_ORDER_PROPERTY);
+        $NetsEasypaymentId = null;
+
+        if(!$OrderPropertyType)
+            return null;
+        
+        foreach ($Order->properties as $key => $property) {
+            if($property->typeId == $OrderPropertyType->id){
+              $NetsEasypaymentId = $property->value;
+            }
+        }
+
+         return $NetsEasypaymentId;
+
+
+    }
+    public static function getpaymentByHash($orderId,$paymentHash){
+
+        $paymentContract = pluginApp(PaymentRepositoryContract::class);
+
+        //get all payments of the order
+        $payments = $paymentContract->getPaymentsByOrderId($orderId);
+       
+        $NetsPayment = null;
+       
+        //search for netseasy payment id linked to the order
+        foreach ($payments as $key => $payment) {
+            if($payment->hash == $paymentHash){
+                $NetsPayment = $payment;
+                break;
+            }
+        }
+
+            
+        Logger::debug(__FUNCTION__, "NetsEasyPay::Debug.PaymentsList", [
+                'NetsPayments' => $NetsPayment,
+                'payments' => $payments
+             ]);
+
+      
+         return $NetsPayment;
+
+
     }
 
-    /**
-     * Load the ID of the payment method for the given plugin key
-     * Return the ID for the payment method
-     *
-     * @return string|int
-     */
+    public static function get_payment_from_credit_note($orderId,$refundId){
+
+        $CreditNotes = OrderHelper::getallcreditnotofOrder($orderId);
+    
+        foreach ($CreditNotes as $key => $CreditNote) {
+          $NetsPlentyPayment = self::getpaymentByHash($CreditNote['id'],$refundId);
+          if($NetsPlentyPayment) break; 
+        }
+    
+        return $NetsPlentyPayment;
+    }
     public static function getNetsEasyPayMopId($PAYMENT_KEY = PluginConfiguration::PAYMENT_KEY_EASY)
     {
 
@@ -498,19 +713,48 @@ class NetsEasyPayHelper
 
         return 'no_paymentmethod_found';
     }
+    public static function getAllNetsEasyPayMopIds()
+    {
+        $MopIds = [];
+        $paymentMethodRepository = pluginApp(PaymentMethodRepositoryContract::class);
+        
+        $paymentMethods = $paymentMethodRepository->allForPlugin(PluginConfiguration::PLUGIN_KEY);
+        
+        if( !is_null($paymentMethods) )
+        {
+            foreach($paymentMethods as $paymentMethod)
+            {
+                $MopIds[] = $paymentMethod->id;
+            }
+        }
+
+        return $MopIds;
+    }
+    public static function getMethodByMopId($mopId)
+    {
+
+        $paymentMethodRepository = pluginApp(PaymentMethodRepositoryContract::class);
+        
+        $paymentMethods = $paymentMethodRepository->allForPlugin(PluginConfiguration::PLUGIN_KEY);
+        
+        if( !is_null($paymentMethods) )
+        {
+            foreach($paymentMethods as $paymentMethod)
+            {
+                if($paymentMethod->id == $mopId )
+                {
+                    return $paymentMethod->paymentKey;
+                }
+            }
+        }
+
+        return null;
+    }
 
     public static function getMethodName(string $lang = 'de'): string
     {  
         return pluginApp(Translator::class)->trans(PluginConfiguration::PLUGIN_NAME."::PaymentMethods.".PluginConfiguration::PAYMENT_KEY_EASY);
     }
-    /**
-     * Create a payment in plentymarkets
-     *
-     * @param array $paymentInfo
-     * @param string $orderId
-     * @return Payment
-     */
-
     public static function CreatePlentyPayment($paymentInfo,$orderId)
     {
         $paymentRepository = pluginApp(PaymentRepositoryContract::class);
@@ -519,29 +763,24 @@ class NetsEasyPayHelper
 
         try{
             
-            $paymentId = $paymentInfo['paymentId'];
-            $refundId = $paymentInfo['refundId'];
-            $chargeId = $paymentInfo['chargeId'];
 
             $payment = pluginApp(Payment::class);
             $payment->mopId           = $paymentInfo['mopId'];
             $payment->transactionType = Payment::TRANSACTION_TYPE_BOOKED_POSTING;
-            $payment->status          = $chargeId ? Payment::STATUS_APPROVED : Payment::STATUS_CAPTURED;
+            $payment->status          = $paymentInfo['status'];
             $payment->currency        = $paymentInfo['currency'];
             $payment->amount          = $paymentInfo['amount'];
             $payment->hash            = $paymentInfo['id'];
             $payment->type            = $paymentInfo['type'];
+            //$payment->unaccountable   = $paymentInfo['unaccountable'];
             
-
-            $text = $refundId ?  'refundId: ' .$refundId . ' paymentId: '. $paymentId: 
-                    ($chargeId ?  'chargeId: ' .$chargeId . ' paymentId: '. $paymentId:
-                                 'paymentId: '. $paymentId) ;
-                                
-
-
+            $reference  = 'PaymentId : ' .$paymentInfo['reference'];
+            $reference .= $paymentInfo['chargeId'] ? ' chargeId : ' .$paymentInfo['chargeId'] : '';
+            $reference .= $paymentInfo['refundId'] ? ' refundId : ' .$paymentInfo['refundId'] : '';
+            
             $paymentProperties[] = self::createPaymentProperty(PaymentProperty::TYPE_TRANSACTION_ID, $orderId);
             $paymentProperties[] = self::createPaymentProperty(PaymentProperty::TYPE_ORIGIN, Payment::ORIGIN_PLUGIN);
-            $paymentProperties[] = self::createPaymentProperty(PaymentProperty::TYPE_BOOKING_TEXT,$text );
+            $paymentProperties[] = self::createPaymentProperty(PaymentProperty::TYPE_BOOKING_TEXT,$reference );
 
             
             $payment->properties = $paymentProperties;
@@ -575,18 +814,11 @@ class NetsEasyPayHelper
 
         } catch (ReferenceTypeException $ex){
             Logger::debug(__FUNCTION__, "NetsEasyPay::Debug.CanNotCreatePlentyPayment", $ex);
+            return null;
         }
 
     }
 
-    /*
-     * Create a PaymentProperty
-     *
-     * @param int    $typeId
-     * @param string $value
-     *
-     * @return PaymentProperty $paymentProperty
-     */
     private static function createPaymentProperty($typeId, $value)
     {
         /** @var PaymentProperty $paymentProperty */
@@ -595,10 +827,6 @@ class NetsEasyPayHelper
         $paymentProperty->value = $value;
         return $paymentProperty;
     }
-
-    /**
-     * @return string
-     */
     public static function getDomain()
     {
         $webstoreConfig = self::getWebstoreConfig();
@@ -611,10 +839,6 @@ class NetsEasyPayHelper
 
         return $domain;
     }
-
-    /**
-     * @return WebstoreConfiguration
-     */
     public static function getWebstoreConfig()
     {
 
@@ -628,3 +852,5 @@ class NetsEasyPayHelper
         return \Locale::getDefault();
     }
 }
+
+

@@ -28,7 +28,7 @@ class RefundEventProcedure
          */
         $order = $event->getOrder();
 
-        // check type of order : return / refund
+        // check type of order : Credit note
         if($order->typeId == 4  )
             return NetsEasyPayHelper::RefundNetsEasyPayment($order->id);
         

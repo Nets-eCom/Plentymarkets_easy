@@ -3,6 +3,7 @@
 {% if services.template.getCurrentTemplate() == 'tpl.checkout'  %}
 
     {% set checkoutKey  = NetsEasyPay.settings.getSetting('checkoutKey') %}
+    {% set ApplePayId  = NetsEasyPay.ApplePayId %}
     {% set Url  = "https://checkout.dibspayment.eu/v1/checkout.js?v=1" %}
 
     {% if checkoutKey  %}
@@ -15,26 +16,20 @@
             <script src="{{Url}}"></script>
             <script src="{{ plugin_path("NetsEasyPay") }}/js/dist/main.js"></script>
 
-            {% set MethodId  = NetsEasyPay.MethodId %}
-            {% set Icons  = NetsEasyPay.settings.getSetting('icons') %}
-            {% set MethodName  = NetsEasyPay.MethodName %}
+            {% set MethodIds  = NetsEasyPay.MethodIds %}
 
             <script>
 
                     $(function() {
 
-                        const icons = JSON.parse('{{ Icons | json_encode | raw }}');
-                      
                         var NPayCompo = Vue.extend(window.NPay);
+                        var MethodIds = JSON.parse('{{ MethodIds | json_encode | raw }}')
 
                         var component = new NPayCompo({
                             propsData: {
-                                isShopbuilder : false,
-                                MaxValue : 50,
                                 checkoutKey :'{{ checkoutKey }}',
-                                MethodId:'{{ MethodId }}',
-                                Icons: icons,
-                                MethodName:'{{ MethodName }}'
+                                MethodIds: MethodIds,
+                                ApplePayId : '{{ ApplePayId }}' 
                             }
                         }).$mount();
 
@@ -60,7 +55,9 @@
                         });
 
                         if( DomContainer == false ){
-                            $("li[data-id='" + '{{ MethodId }}' +"']").hide();
+                           MethodIds.forEach(MethodId => {
+                                    $(`li[data-id='${MethodId}']`).hide(); 
+                            });
                         }
                         
 

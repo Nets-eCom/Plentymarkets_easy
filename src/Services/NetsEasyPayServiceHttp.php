@@ -6,14 +6,15 @@ namespace NetsEasyPay\Services;
 use Plenty\Modules\Basket\Contracts\BasketRepositoryContract;
 use Plenty\Modules\Basket\Contracts\BasketItemRepositoryContract;
 use Plenty\Modules\Plugin\Libs\Contracts\LibraryCallContract;
+use Plenty\Modules\Frontend\Contracts\Checkout;
 use NetsEasyPay\Helper\Plenty\Variation\VariationHelper;
 use Plenty\Modules\Authorization\Services\AuthHelper;
 use IO\Extensions\Constants\ShopUrls;
-
+use NetsEasyPay\Models\AccessToken;
 use NetsEasyPay\Helper\NetsEasyPayHelper;
 use NetsEasyPay\Helper\AddressHelper;
 use NetsEasyPay\Helper\Logger;
-
+use NetsEasyPay\Configuration\PluginConfiguration;
 use NetsEasyPay\Services\SettingsService;
 
 
@@ -179,8 +180,9 @@ class NetsEasyPayServiceHttp
         }
 
         Logger::debug(__FUNCTION__, "NetsEasyPay::Debug.ApiResponse", $response);
-
+        
         return $response['data'];
+        
   } 
   public static function CancelPayment($PaymentId){
           
@@ -188,8 +190,12 @@ class NetsEasyPayServiceHttp
          $LibraryCall = pluginApp(LibraryCallContract::class);
          $NetsEasyPayment = self::getNetsEasyPaymentByID($PaymentId);
          
-         if(!$NetsEasyPayment)
-              return ['error' => 'Can Not Get PaymentId'];
+         if(!$NetsEasyPayment){
+          Logger::debug(__FUNCTION__, "NetsEasyPay::Debug.ApiError",  $NetsEasyPayment);
+          
+          return ['error' => 'Can Not Get PaymentId'];
+         }
+              
          
         $CancelData = [
             "amount" => $NetsEasyPayment["payment"]["summary"]["reservedAmount"]
@@ -283,7 +289,7 @@ class NetsEasyPayServiceHttp
                   'Method'  => 'RefundPayment',
                   'Token'   => $Settings['secretKey'],
                   'TestMode' => $Settings['UseTestCredentials']  
-                ];
+        ];
 
         Logger::debug(__FUNCTION__, "NetsEasyPay::Debug.RefundPaymentPayload", $data );
 
@@ -310,7 +316,10 @@ class NetsEasyPayServiceHttp
 
         Logger::debug(__FUNCTION__, "NetsEasyPay::Debug.ApiResponse",  $response);
 
-        return  $response['data'];
+        return  [
+                   'data' => $response['data'],
+                   'chargeId' => $chargeId,
+                ];
 
   }
   public static function UpdateNetsEasyPaymentRef($OrderId,$PaymentId){
@@ -356,6 +365,39 @@ class NetsEasyPayServiceHttp
         $Settings =  SettingsService::getAllSetting($withsecretKey = true);
         $ShopUrls = pluginApp(ShopUrls::class); 
 
+        $paymentMethodName = NetsEasyPayHelper::getMethodByMopId(
+                                    pluginApp(Checkout::class)->getPaymentMethodId()
+                            );
+
+        $paymentMethodName = ucfirst(strtolower(str_replace(PluginConfiguration::PAYMENT_KEY_EASY, '', $paymentMethodName)));
+        
+        $tokens = AccessToken::where('status', '=', 1) ;
+        $Token = !empty($tokens) ? $tokens[0] :  WebHookHandler::generate_New_token();
+        
+
+        $WebhooksEvents = [
+          "payment.charge.created.v2",
+          "payment.charge.failed",
+          "payment.refund.initiated.v2",
+          "payment.refund.initiated",
+          "payment.refund.completed",
+          "payment.refund.failed",
+          "payment.cancel.created",
+          "payment.cancel.failed"
+        ];
+        
+        $webhooks = [];
+
+        foreach ($WebhooksEvents as $key => $WebhooksEvent) {
+          $webhooks[] = [
+                          "eventName"=> $WebhooksEvent,
+                          "url"=> NetsEasyPayHelper::getDomain().'/rest/nexi/webhooks',
+                          "authorization"=>$Token->token_value,
+                          "headers"=> [
+                                        ["X-token"=> $Token->token_value]
+                                      ]
+                        ];
+        }
         $Paymentdata = [
                           'checkout' => [
                                 "integrationType" => "EmbeddedCheckout",
@@ -372,6 +414,13 @@ class NetsEasyPayServiceHttp
                                   ],
                                 
                           ],
+                          "paymentMethodsConfiguration" => [
+                            [ "name" => $paymentMethodName ]
+                          ],
+                          "notifications" => [
+                            "webhooks"=> $webhooks
+                          ]
+
         ];
 
         $Basket = pluginApp(BasketRepositoryContract::class)->load();
@@ -490,12 +539,12 @@ class NetsEasyPayServiceHttp
         Logger::debug(__FUNCTION__, "NetsEasyPay::Debug.".$logMsg, [
             //'Basket' => $Basket ,
             //'BasketItem' => $BasketItem,
-            'Payload' => $Paymentdata,
+            'Payload' => $Paymentdata
             //'PriceData' => $item
             //'billingAddress' => $billingAddress,
             //'shippingAddress' => $shippingAddress,    
         ]);
-          
+
        
        
         return $Paymentdata;

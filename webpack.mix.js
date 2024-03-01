@@ -4,7 +4,7 @@ const mix = require('laravel-mix');
 //const pluginSetUrl = 'https://mwzi7q2a40rn.c01-15.plentymarkets.com'
 const pluginSetUrl ='https://rlxh5qb8uqve.c01-17.plentymarkets.com'
 const pluginPath = "netseasypay";
-//4925000000000004
+//5413000000000000
 
 mix
     .js('./resources/js/src/app.js', './resources/js/dist/main.js').vue()

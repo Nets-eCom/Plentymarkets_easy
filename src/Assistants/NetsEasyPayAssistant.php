@@ -4,7 +4,9 @@ namespace NetsEasyPay\Assistants;
 
 use NetsEasyPay\Assistants\SettingsHandlers\NetsEasyPayAssistantSettingsHandler;
 use NetsEasyPay\Assistants\Steps\SettingsStep;
+use NetsEasyPay\Configuration\PluginConfiguration;
 use Plenty\Modules\Order\Shipping\Countries\Contracts\CountryRepositoryContract;
+use Plenty\Modules\Order\Status\Contracts\OrderStatusRepositoryContract;
 use Plenty\Modules\System\Contracts\WebstoreRepositoryContract;
 use Plenty\Modules\System\Models\Webstore;
 use Plenty\Modules\Wizard\Services\WizardProvider;
@@ -64,7 +66,7 @@ class NetsEasyPayAssistant extends WizardProvider
             "shortDescription" => 'NetsEasyPayAssistant.assistantShortDescription',
             "iconPath" => $this->getIcon(),
             "settingsHandlerClass" => NetsEasyPayAssistantSettingsHandler::class,
-            "translationNamespace" => "NetsEasyPay",
+            "translationNamespace" => PluginConfiguration::PLUGIN_NAME,
             "key" => "payment-netseasypay-assistant",
             "topics" => ["payment"],
             'priority' => 990,
@@ -81,10 +83,11 @@ class NetsEasyPayAssistant extends WizardProvider
             ],
             "steps" => [
                 "stepZero" => SettingsStep::stepZero(),
-                'stepOne' => SettingsStep::stepOne($this->getCountriesListForm()),
+                'stepOne' => SettingsStep::stepOne($this->getCountriesListForm(),$this->getMethodsListForm()),
                 'stepTwo' => SettingsStep::stepTwo(),
-                "stepThree" => SettingsStep::stepThree($this->getFrontendIcons()),
-                'stepFour' => SettingsStep::stepFour(),
+                'stepThree' => SettingsStep::stepThree(),
+                'stepFour' => SettingsStep::stepFour($this->getStatusList()),
+                'stepFive' =>  SettingsStep::stepFive()
             ]
         ];
         return $config;
@@ -115,6 +118,29 @@ class NetsEasyPayAssistant extends WizardProvider
         }
         return $this->deliveryCountries;
     }
+    private function getMethodsListForm()
+    {
+        $MethodsList = [];
+        $paymentMethods = PluginConfiguration::$paymentMethods;
+        foreach ($paymentMethods as $key => $method) {
+
+                $MethodsList[] = [
+                    'caption' => $method['Name'],
+                    'value' => $method['Key']
+                ];
+            
+
+        }
+
+        // Sort values alphabetically
+        usort($MethodsList, function($a, $b) {
+            return ($a['caption'] <=> $b['caption']);
+        });
+
+        return $MethodsList;
+    }
+   
+    
 
     /**
      * @return array
@@ -154,70 +180,28 @@ class NetsEasyPayAssistant extends WizardProvider
         $app = pluginApp(Application::class);
 
         if ($this->getLanguage() != 'de') {
-            return $app->getUrlPath('NetsEasyPay').'/images/icon_en.jpg';
+            return $app->getUrlPath(strtolower(PluginConfiguration::PLUGIN_NAME)).'/images/icon_en.jpg';
         }
 
-        return $app->getUrlPath('NetsEasyPay').'/images/icon_de.jpg';
+        return $app->getUrlPath(strtolower(PluginConfiguration::PLUGIN_NAME)).'/images/icon_de.jpg';
     }
 
-    private function getFrontendIcons()
+    private function getStatusList()
     {
-        $app = pluginApp(Application::class);
-        $iconsNames = [
-                        [
-                            'name' => 'visa',
-                            'width' =>  50
-                        ],
-                        [
-                            'name' => 'mastercard',
-                            'width' =>  35
-                        ],
-                        [
-                            'name' => 'maestro',
-                            'width' =>  35
-                        ],
-                        [
-                            'name' => 'vipps',
-                            'width' =>  50
-                        ],
-                        [
-                            'name' => 'afterpay',
-                            'width' =>  70
-                        ],
-                        [
-                            'name' => 'swish',
-                            'width' =>  60
-                        ],
-                        [
-                            'name' => 'mobilepay',
-                            'width' =>  60
-                        ],
-                        [
-                            'name' => 'dankort',
-                            'width' =>  40
-                        ],
-                        [
-                            'name' => 'paypal',
-                            'width' =>  70
-                        ],
-                        [
-                            'name' => 'ratepay',
-                            'width' =>  35
-                        ],
- 
-
-                    ];
-        $icons =  [];
-
-        foreach ($iconsNames as $key => $icon) {
-            $icons[] = [
-                'caption' => $icon['name'],
-                'value' => $app->getUrlPath('netseasypay').'/images/icons/svg/'.$icon['name'].'.svg,'.$icon['width']
-            ];
-        }
-       
-
-        return $icons;
-   
+        
+            $statuses = pluginApp(OrderStatusRepositoryContract::class)->all();
+            $statusList = [];
+            $systemLanguage = $this->getLanguage();
+            
+            foreach($statuses as $status) {
+                $statusList[] = [
+                    'caption' => $status->names[$systemLanguage],
+                    'value' => $status->statusId
+                ];
+            }
+        
+        return $statusList;
     }
+
+
 }
