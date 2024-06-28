@@ -80,6 +80,10 @@ class PluginConfiguration
     const PAYMENT_KEY_APPLEPAY = self::PAYMENT_KEY_EASY."APPLEPAY";
     const APPLEPAY_FRONTEND_NAME = "Nexi APPLE PAY";
 
+    /* KLARNA Method */
+    const PAYMENT_KEY_KLARNA = self::PAYMENT_KEY_EASY."KLARNA";
+    const KLARNA_FRONTEND_NAME = "Nexi KLARNA";
+
     // order properties
 
 
@@ -175,6 +179,11 @@ class PluginConfiguration
                                             'Key' => self::PAYMENT_KEY_APPLEPAY,
                                             'Name' => self::APPLEPAY_FRONTEND_NAME,
                                             'Class' => \NetsEasyPay\Methods\ApplePayMethod::class
+                                        ],
+                                        [
+                                            'Key' => self::PAYMENT_KEY_KLARNA,
+                                            'Name' => self::KLARNA_FRONTEND_NAME,
+                                            'Class' => \NetsEasyPay\Methods\KlarnaMethod::class
                                         ],
                                         
                                         

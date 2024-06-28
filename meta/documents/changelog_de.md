@@ -1,5 +1,10 @@
 # Release Notes für Nexi Checkout
 
+## v1.0.5 (2024-06-26)
+- NEU: Klarna wurde als Zahlungsart hinzugefügt
+- Verbesserung: Es wurde eine Problem mit RatePay Lastschrift behoben bei dem die Falsche Übersetzung referenziert wurde
+- Verbesserung: Es wurde eine fehlenden Icon hinzugefügt
+
 ## v1.0.4 (2024-03-01)
 - NEU: Payment-Split - das Plugin erlaubt es nun einzelne Zahlungsarten dediziert im Checkout anzubieten
 - NEU: Webhook-Integration - Aktuelle Inforamtionen zum Zahlungstatus werden nun automatisiert zu plentymarkets via Webhook-Integration importiert 

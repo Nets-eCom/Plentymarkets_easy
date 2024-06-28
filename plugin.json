@@ -1,5 +1,5 @@
 {
-  "version"           : "1.0.4",
+  "version"           : "1.0.5",
   "name"              : "NetsEasyPay",
   "marketplaceName"   : {"de":"Nexi Checkout","en":"Nexi Checkout"},
   "author"            : "Nexi | Nets",
@@ -55,7 +55,7 @@
   },
   "runOnBuild"        : [
       "NetsEasyPay\\Migrations\\CreateSettings_1_0_2",
-      "NetsEasyPay\\Migrations\\CreateShippingCountrySettings_1_0_3",
+      "NetsEasyPay\\Migrations\\CreateShippingCountrySettings_1_0_4",
       "NetsEasyPay\\Migrations\\Create_AccessToken_1_0_3",
       "NetsEasyPay\\Migrations\\Create_Order_Properties_1_0_1"
   ]

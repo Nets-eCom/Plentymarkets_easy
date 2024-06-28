@@ -82,12 +82,12 @@ class NetsEasyPayServiceProvider extends ServiceProvider
         }, 0);
 
 
-        // Register the netseasy Assistant
+        // Register NEXI Assistant
         $wizardContainerContract->register('payment-netseasypay-assistant', NetsEasyPayAssistant::class);
 
         $twig->addExtension(NetsEasyPayTwigServiceProvider::class);
 
-        // Register the netseasy payment method in the payment method container
+        // Register NEXI payment method in the payment method container
         $paymentMethods = PluginConfiguration::$paymentMethods;
         foreach ($paymentMethods as $key => $method) {
 

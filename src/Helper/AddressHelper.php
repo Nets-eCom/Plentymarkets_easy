@@ -495,7 +495,6 @@ class AddressHelper
                             
             }else{
                 
-                return null;
                 $prefix = null;
                 
                 foreach( $ccodes as $key=>$value ){

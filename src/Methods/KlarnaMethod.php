@@ -6,12 +6,12 @@ namespace NetsEasyPay\Methods;
 use NetsEasyPay\Configuration\PluginConfiguration;
 
 
-class RatePaySepaMethod extends BaseMethod
+class KlarnaMethod extends BaseMethod
 {
 
   
 
-    const METHOD_KEY = PluginConfiguration::PAYMENT_KEY_RATEPAYSEPA;
+    const METHOD_KEY = PluginConfiguration::PAYMENT_KEY_KLARNA;
     const METHOD_NAME = PluginConfiguration::PLUGIN_NAME."::PaymentMethods.".self::METHOD_KEY;
 
     /**

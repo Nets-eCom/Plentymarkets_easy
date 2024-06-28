@@ -5,7 +5,7 @@
 |Author | `Nets eCom / Web Wikinger`
 |plentyshop LTS Version | `v5.0.0+`
 |iO Version | `v5.0.0+`
-|plugin Version | `1.0.4`
+|plugin Version | `1.0.5`
 |Documentation Guide | [https://developer.nexigroup.com/nets-easy/en-EU/docs/nets-easy-for-plentymarkets/](https://developer.nexigroup.com/nexi-checkout/en-EU/docs/checkout-for-plentymarkets/)
 |Github | https://github.com/Nets-eCom/Plentymarkets_easy
 |License | `MIT License`
